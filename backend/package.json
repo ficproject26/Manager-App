@@ -1,0 +1,22 @@
+{
+  "name": "fic-manager-backend",
+  "version": "1.0.0",
+  "description": "FIC Manager Real-time Push Notification & Territory Scoping API Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test_field_actions.js",
+    "test:export": "node test_reports_export.js",
+    "test:all": "node test_field_actions.js && node test_reports_export.js"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3",
+    "pdfkit": "^0.20.2",
+    "socket.io": "^4.8.4",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  }
+}

@@ -17,12 +17,19 @@ FIC Manager App/
 │   ├── metro.config.js   # Metro bundler configuration
 │   └── babel.config.js   # Babel configuration
 │
-├── backend/              # Node.js / Express FCM Notification Backend Service
+├── backend/              # Real-Time Scoping & Notification API Server
 │   ├── server.js         # Real-time Push Notification & Territory Scoping Server
-│   └── README.md         # Backend Documentation
+│   ├── package.json      # Backend dependencies & test scripts
+│   ├── test_*.js         # Automated backend test suites
+│   ├── .env.example      # Environment variables template
+│   └── README.md         # Backend documentation
 │
-├── docs/                 # Application design documents & guides
-├── .gitignore
+├── screenshots/          # Visual QA, flow captures & UI test dumps
+│   └── README.md
+│
+├── docs/                 # Architectural specs, API contracts & workflows (26 guides)
+├── .env.example          # Root environment configuration template
+├── .gitignore            # Production git ignore rules
 ├── package.json          # Root scripts delegating to frontend/backend
 └── README.md
 ```

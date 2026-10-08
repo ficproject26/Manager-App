@@ -12,7 +12,9 @@
     "mobile:android": "npm --prefix frontend run android",
     "mobile:typecheck": "npm --prefix frontend run typecheck",
     "mobile:test": "npm --prefix frontend run test",
-    "backend:start": "node backend/server.js",
+    "backend:start": "npm --prefix backend start",
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:test": "npm --prefix backend run test:all",
     "build:apk": "npm --prefix frontend run build:apk"
   },
   "dependencies": {
