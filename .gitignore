@@ -27,6 +27,12 @@ android/local.properties
 android/captures/
 .bundle/
 
+# iOS Native
+ios/Pods/
+ios/build/
+ios/*.xcworkspace/xcuserdata
+ios/*.xcodeproj/xcuserdata
+
 # React Native Metro
 .metro-health-check*
 
