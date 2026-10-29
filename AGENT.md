@@ -179,3 +179,33 @@ Before concluding any task:
 - `npm run typecheck`: **PASSED** (0 errors, exit code 0).
 - Backend Endpoint Connectivity: **CONFIRMED** (`http://3.110.88.42:8005/api` active and responsive).
 - Website & Backend Code Integrity: **100% UNTOUCHED** (0 files modified in `Website/Manager`).
+
+---
+
+## 7. Permanent Project & Cleanup Rules
+
+The following rules are permanently binding for all automated agents and developers:
+
+1. **Mandatory Dependency Analysis Before Any Deletion**:
+   - Never delete a file or folder without exhaustive static dependency analysis, import tracking, and runtime reflection verification.
+2. **Never Remove Working Functionality**:
+   - Never remove, stub, or disable working functionality, UI screens, services, or models under the guise of simplifying project structure.
+3. **Obtain Explicit User Approval**:
+   - Always audit first, report exact relative paths with proof, and obtain explicit user approval before deleting any file or folder.
+4. **Preserve All Previously Approved Workflows**:
+   - All navigation routes, role-based scoping, real-time WebSocket events, vendor onboarding, and task workflows must remain intact.
+5. **Strict No-Mock Enforcement**:
+   - No hardcoding, mock data, fake records, or dump data across application code.
+6. **Detailed Verification Reporting**:
+   - Report exact file paths and actual regression verification results (e.g., `npm run typecheck`) for every approved cleanup.
+
+### 7.1 Record of Approved Removals (Audit v1.3.0)
+- **Approved & Removed Files**:
+  - `src/features/auth/LoginScreenPlaceholder.tsx` (Dead scaffolding file with hardcoded credentials; superseded by live `LoginScreen.tsx`).
+  - `src/navigation/drawer/PlaceholderScreen.tsx` (Dead early navigation stub; superseded by real screen implementations).
+  - `src/navigation/types/navigation.ts` & folder `src/navigation/types/` (Redundant duplicate; canonical types reside in `src/navigation/types.ts`).
+- **Preserved Candidates**:
+  - `screenshots/` (Retained as visual QA and emulator verification artifacts).
+- **Regression Verification**:
+  - `npm run typecheck` (`tsc --noEmit`): **PASSED** (0 errors, exit code 0).
+

@@ -4,6 +4,23 @@ All notable changes to the FIC Manager Application repository will be documented
 
 ---
 
+## [1.3.0] - Safe Removal of Unused Files & Permanent Audit Rules
+
+### Removed
+- `src/features/auth/LoginScreenPlaceholder.tsx`: Legacy scaffolding placeholder containing hardcoded credentials; fully superseded by live `LoginScreen.tsx`.
+- `src/navigation/drawer/PlaceholderScreen.tsx`: Early navigation placeholder stub; all 14 screens are now fully implemented and active in `MainDrawerNavigator.tsx`.
+- `src/navigation/types/navigation.ts` and directory `src/navigation/types/`: Redundant duplicate; canonical typed parameter lists reside in `src/navigation/types.ts`.
+
+### Preserved
+- `screenshots/` directory containing 38 visual QA test dumps and flow captures.
+- All 14 feature screen modules, design system components, live API services, and mock offline test fallbacks.
+- Protected `backend/` and `Website/Manager` paths.
+
+### Documentation
+- Codified permanent rules in `AGENT.md` governing safe removal, dependency analysis, and mandatory user approval prior to file deletion.
+
+---
+
 ## [1.2.0] - Shared Backend Integration & Synchronization
 
 ### Added
