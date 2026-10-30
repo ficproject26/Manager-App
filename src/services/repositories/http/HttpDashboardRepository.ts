@@ -83,23 +83,63 @@ export class HttpDashboardRepository implements IDashboardRepository {
       const resData = response.data || response;
       const rawActivities = resData?.recentActivities || resData?.todayActivities || [];
 
-      return rawActivities.slice(0, limit).map((a: any, index: number) => ({
-        id: a._id || a.id || `act-${index}`,
-        managerId: a.userId || managerId,
-        activityType: (a.action || a.activityType || 'VENDOR_ONBOARDED') as any,
-        entityId: a.recordId || a.entityId || '',
-        entityName: a.details?.vendorName || a.details?.name || a.entityName || a.module || 'System Event',
-        timestamp: a.timestamp || a.createdAt || new Date().toISOString(),
-        territory: {
-          stateId: a.stateId || '',
-          districtId: a.districtId,
-          divisionId: a.divisionId,
-          pincodeId: a.pincodeId,
-        },
-        metadata: {
-          description: a.description || a.details?.message || a.action || 'Activity recorded',
-        },
-      }));
+      const storedMgrObj = await services.storageService.getItem('ACTIVE_MGR_OBJECT');
+      let cachedManager: any = null;
+      if (storedMgrObj) {
+        try {
+          cachedManager = JSON.parse(storedMgrObj);
+        } catch {}
+      }
+
+      const activeId = String(cachedManager?.id || managerId || '').trim().toLowerCase();
+      const activeName = String(cachedManager?.name || '').trim().toLowerCase();
+
+      // Strictly isolate to authenticated manager's activities (Module 2)
+      const personalActivities = rawActivities.filter((a: any) => {
+        const aUserId = String(a.userId || a.managerId || a.actorId || '').trim().toLowerCase();
+        const aUserName = String(a.userName || a.actorName || a.actor || '').trim().toLowerCase();
+        if (activeId && aUserId && (aUserId === activeId || aUserId.includes(activeId) || activeId.includes(aUserId))) {
+          return true;
+        }
+        if (activeName && aUserName && (aUserName === activeName || aUserName.includes(activeName) || activeName.includes(aUserName))) {
+          return true;
+        }
+        return false;
+      });
+
+      // Sort latest first
+      personalActivities.sort((x: any, y: any) => {
+        const tx = new Date(x.timestamp || x.createdAt || 0).getTime();
+        const ty = new Date(y.timestamp || y.createdAt || 0).getTime();
+        return ty - tx;
+      });
+
+      return personalActivities.slice(0, limit).map((a: any, index: number) => {
+        const rawAction = a.action || a.activityType || 'Field Activity';
+        const rawDetails = typeof a.details === 'string' ? a.details : (a.details?.message || a.details?.vendorName || a.details?.name || a.details?.shopName || '');
+        const entityName = rawDetails || a.entityName || (a.newValue && typeof a.newValue === 'object' ? a.newValue.businessName : '') || a.module || rawAction;
+
+        return {
+          id: a._id || a.id || `act-${index}`,
+          managerId: a.userId || managerId,
+          activityType: rawAction,
+          entityId: a.recordId || a.entityId || '',
+          entityName,
+          timestamp: a.timestamp || a.createdAt || new Date().toISOString(),
+          territory: {
+            stateId: a.stateId || '',
+            districtId: a.districtId,
+            divisionId: a.divisionId,
+            pincodeId: a.pincodeId,
+          },
+          metadata: {
+            action: rawAction,
+            description: rawDetails || rawAction,
+            details: a.details,
+            recordType: a.recordType || a.module || 'activity',
+          },
+        };
+      });
     } catch {
       return [];
     }

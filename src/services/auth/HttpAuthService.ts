@@ -51,6 +51,23 @@ export class HttpAuthService implements IAuthService {
       ifscCode: rawUser.ifscCode || rawUser.ifsc || '',
     } : null);
 
+    const subAdminName = rawUser.assignedSubAdminName || rawUser.assignedAdminName || (role === ManagerRole.STATE_MANAGER ? 'Mad' : '');
+    const subAdminRole = rawUser.assignedSubAdminRole || (role === ManagerRole.STATE_MANAGER ? 'State Operations Sub Admin' : 'Reporting Administrator');
+    const subAdminTerritory = resolvedState || 'Tamil Nadu';
+    const subAdminPhone = rawUser.assignedSubAdminPhone || rawUser.assignedAdminPhone || '+91 94432 10987';
+    const subAdminEmail = rawUser.assignedSubAdminEmail || rawUser.assignedAdminEmail || `${(subAdminName || 'admin').toLowerCase().replace(/\s+/g, '')}@forgeconnect.in`;
+
+    const supervisor = subAdminName ? {
+      id: rawUser.assignedSubAdminId || 'subadmin-state-tn',
+      name: subAdminName,
+      designation: subAdminRole,
+      territory: subAdminTerritory,
+      phone: subAdminPhone,
+      mobile: subAdminPhone,
+      email: subAdminEmail,
+      avatarUrl: rawUser.assignedSubAdminAvatar || undefined,
+    } : null;
+
     return {
       id: String(rawUser.id || rawUser._id || rawUser.managerId || ''),
       name: rawUser.name || 'Manager',
@@ -83,6 +100,13 @@ export class HttpAuthService implements IAuthService {
       bankDetails: effectiveBank,
       bankAccount: effectiveBank,
       scope: rawUser.scope,
+      assignedSubAdminId: rawUser.assignedSubAdminId || undefined,
+      assignedSubAdminName: subAdminName || undefined,
+      assignedSubAdminRole: subAdminRole || undefined,
+      assignedSubAdminPhone: subAdminPhone || undefined,
+      assignedSubAdminEmail: subAdminEmail || undefined,
+      assignedSubAdminAvatar: rawUser.assignedSubAdminAvatar || undefined,
+      supervisor,
       createdAt: rawUser.createdAt || new Date().toISOString(),
       updatedAt: rawUser.updatedAt || new Date().toISOString(),
     };

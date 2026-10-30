@@ -179,14 +179,6 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
     });
   }, [allTasks, selectedStatus, selectedPriority, searchQuery]);
 
-  const statusChips: { id: TaskStatusFilter; label: string }[] = [
-    { id: 'ALL', label: 'All' },
-    { id: TaskStatus.PENDING, label: 'Pending' },
-    { id: TaskStatus.IN_PROGRESS, label: 'In Progress' },
-    { id: TaskStatus.BLOCKED, label: 'Blocked' },
-    { id: TaskStatus.COMPLETED, label: 'Completed' },
-  ];
-
   const priorityOptions = [
     { label: 'All Priorities', value: 'ALL' },
     { label: 'High Priority', value: Priority.HIGH },
@@ -405,22 +397,23 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
             </View>
 
             {/* 4-Metric Summary Cards Grid */}
+            {/* Redesigned 4-Metric Summary KPI Cards Grid (Module 4) */}
             <View style={styles.metricsContainer}>
               {/* Total Card */}
               <TouchableOpacity
                 style={[
                   styles.metricCard,
-                  { backgroundColor: '#F0F9FF', borderColor: selectedStatus === 'ALL' ? '#0284C7' : '#BAE6FD' },
+                  { backgroundColor: '#F8FAFC', borderColor: selectedStatus === 'ALL' ? '#0284C7' : '#E2E8F0' },
                   selectedStatus === 'ALL' && styles.metricCardActive,
                 ]}
                 onPress={() => setSelectedStatus('ALL')}
                 activeOpacity={0.7}
               >
                 <View style={styles.metricTopRow}>
-                  <Text style={[styles.metricCount, { color: '#0284C7' }]}>{counts.total}</Text>
-                  <Icon name="clipboard-text-outline" size={17} color="#0284C7" />
+                  <Text style={[styles.metricCount, { color: '#0F172A' }]}>{counts.total}</Text>
+                  <Icon name="clipboard-text-outline" size={19} color="#0284C7" />
                 </View>
-                <Text style={[styles.metricLabel, { color: '#0284C7' }]}>Total</Text>
+                <Text style={[styles.metricLabel, { color: '#475569' }]}>TOTAL</Text>
               </TouchableOpacity>
 
               {/* Pending Card */}
@@ -428,7 +421,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                 style={[
                   styles.metricCard,
                   {
-                    backgroundColor: '#FEF3C7',
+                    backgroundColor: '#FFFBEB',
                     borderColor: selectedStatus === TaskStatus.PENDING ? '#D97706' : '#FDE68A',
                   },
                   selectedStatus === TaskStatus.PENDING && styles.metricCardActive,
@@ -439,10 +432,10 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.metricTopRow}>
-                  <Text style={[styles.metricCount, { color: '#D97706' }]}>{counts.pending}</Text>
-                  <Icon name="clock-outline" size={17} color="#D97706" />
+                  <Text style={[styles.metricCount, { color: '#B45309' }]}>{counts.pending}</Text>
+                  <Icon name="clock-outline" size={19} color="#D97706" />
                 </View>
-                <Text style={[styles.metricLabel, { color: '#D97706' }]}>Pending</Text>
+                <Text style={[styles.metricLabel, { color: '#92400E' }]}>PENDING</Text>
               </TouchableOpacity>
 
               {/* In Progress Card */}
@@ -461,10 +454,10 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.metricTopRow}>
-                  <Text style={[styles.metricCount, { color: '#2563EB' }]}>{counts.inProgress}</Text>
-                  <Icon name="sync" size={17} color="#2563EB" />
+                  <Text style={[styles.metricCount, { color: '#1D4ED8' }]}>{counts.inProgress}</Text>
+                  <Icon name="progress-wrench" size={19} color="#2563EB" />
                 </View>
-                <Text style={[styles.metricLabel, { color: '#2563EB' }]}>In Progress</Text>
+                <Text style={[styles.metricLabel, { color: '#1E40AF' }]}>IN PROGRESS</Text>
               </TouchableOpacity>
 
               {/* Completed Card */}
@@ -472,7 +465,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                 style={[
                   styles.metricCard,
                   {
-                    backgroundColor: '#DCFCE7',
+                    backgroundColor: '#F0FDF4',
                     borderColor: selectedStatus === TaskStatus.COMPLETED ? '#16A34A' : '#BBF7D0',
                   },
                   selectedStatus === TaskStatus.COMPLETED && styles.metricCardActive,
@@ -483,36 +476,11 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.metricTopRow}>
-                  <Text style={[styles.metricCount, { color: '#16A34A' }]}>{counts.completed}</Text>
-                  <Icon name="check-circle" size={17} color="#16A34A" />
+                  <Text style={[styles.metricCount, { color: '#15803D' }]}>{counts.completed}</Text>
+                  <Icon name="check-circle-outline" size={19} color="#16A34A" />
                 </View>
-                <Text style={[styles.metricLabel, { color: '#16A34A' }]}>Completed</Text>
+                <Text style={[styles.metricLabel, { color: '#166534' }]}>COMPLETED</Text>
               </TouchableOpacity>
-            </View>
-
-            {/* Status Filter Chips Row */}
-            <View style={styles.chipsSection}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chipsScroll}
-              >
-                {statusChips.map(chip => {
-                  const isSelected = selectedStatus === chip.id;
-                  return (
-                    <TouchableOpacity
-                      key={chip.id}
-                      style={[styles.statusChip, isSelected && styles.statusChipActive]}
-                      onPress={() => setSelectedStatus(chip.id)}
-                      activeOpacity={0.75}
-                    >
-                      <Text style={[styles.statusChipText, isSelected && styles.statusChipTextActive]}>
-                        {chip.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
             </View>
 
             {/* Search Input & Priority Filter Row */}
@@ -647,39 +615,46 @@ const styles = StyleSheet.create({
   metricsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 10,
     marginBottom: 16,
   },
   metricCard: {
     flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
     justifyContent: 'space-between',
-    minHeight: 62,
+    minHeight: 80,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   metricCardActive: {
     borderWidth: 2,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   metricTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   metricCount: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '800',
+    letterSpacing: -0.5,
   },
   metricLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   chipsSection: {
     marginBottom: 14,

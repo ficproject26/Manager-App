@@ -2,9 +2,11 @@
  * Field Visit Service
  * Manages field visit records, vendor visit logging, and synchronizes newly
  * added vendors directly with Field Visit Reports and the Manager's Daily Report.
+ * Authoritative connection to backend submitted reports (No Mock Fallbacks)
  */
 import { VisitRecord, Vendor, Manager, VendorStatus } from '../../types';
 import { IVendorRepository } from '../repositories/IVendorRepository';
+import { apiClient } from '../api/ApiClient';
 
 const INITIAL_VISIT_RECORDS: VisitRecord[] = [];
 
@@ -29,14 +31,78 @@ export class FieldVisitService {
 
   /**
    * Returns all field visit records, newest first.
-   * Also synchronizes any custom vendors created in the vendor repository.
+   * Synchronizes with backend submitted reports and live vendor visits.
    */
   async getVisitRecords(): Promise<VisitRecord[]> {
+    // 1. Fetch live submitted reports from production backend
+    try {
+      console.log('[FieldVisitService] fetching /reports/submitted...');
+      const res = await apiClient.get<any>('/reports/submitted', { timeoutMs: 15000 });
+      const backendReports = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      console.log('[FieldVisitService] backendReports parsed count:', backendReports.length);
+        if (Array.isArray(backendReports)) {
+          for (const rep of backendReports) {
+            const mgrName = rep.managerName || 'Regional Manager';
+            const mgrRole = rep.managerRole || 'State Manager';
+            const repLoc = [rep.district, rep.division, rep.state].filter(Boolean).join(', ') || 'Tamil Nadu';
+            const repPin = rep.pincode || rep.pincodeCode || '';
+            const repTime = rep.submittedAt ? new Date(rep.submittedAt).toLocaleDateString() : 'Recent';
+
+            // Flatten visits contained in the submitted reports
+            if (Array.isArray(rep.shopVisits) && rep.shopVisits.length > 0) {
+              for (const v of rep.shopVisits) {
+                const visitId = String(v._id || v.id || `visit_${rep._id || rep.id}_${v.shopName}`);
+                if (!this.records.some(r => r.id === visitId)) {
+                  const rawPhoto = v.shopPhoto || v.storefrontPhoto || v.photo || v.photoUrl;
+                  const validPhoto = (rawPhoto && !rawPhoto.includes('[binary_truncated]')) ? rawPhoto : undefined;
+
+                  this.records.push({
+                    id: visitId,
+                    shopName: v.shopName || 'Storefront Establishment',
+                    vendorCode: rep.reportCode || `REP-${visitId.slice(-5)}`,
+                    category: v.category || v.businessCategory || 'Commercial',
+                    managerName: v.managerName || mgrName,
+                    managerRole: v.managerRole || mgrRole,
+                    location: [v.division, v.district, v.state].filter(Boolean).join(', ') || repLoc,
+                    pincode: v.pincode || v.pincodeCode || repPin,
+                    timestamp: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : repTime,
+                    isInterested: v.interestStatus === 'YES' || v.interestedStatus === 'YES',
+                    photoUrl: validPhoto,
+                    reasonNotInterested: v.notInterestedReason,
+                    gpsCoords: v.latitude && v.longitude ? `${v.latitude}° N, ${v.longitude}° E` : '',
+                    voiceNoteUri: v.audioVoiceNote || v.voiceNote || undefined,
+                  });
+                }
+              }
+            } else {
+              // Standalone submitted report record
+              const repId = String(rep._id || rep.id || `rep_${Date.now()}`);
+              if (!this.records.some(r => r.id === repId)) {
+                this.records.push({
+                  id: repId,
+                  shopName: rep.reportTitle || rep.periodLabel || `Field Report (${rep.reportCode || 'Official'})`,
+                  vendorCode: rep.reportCode || 'REP-OFFICIAL',
+                  category: 'Operational Report',
+                  managerName: mgrName,
+                  managerRole: mgrRole,
+                  location: repLoc,
+                  pincode: repPin,
+                  timestamp: repTime,
+                  isInterested: true,
+                });
+              }
+            }
+          }
+        }
+    } catch (err) {
+      console.warn('[FieldVisitService] /reports/submitted error:', err);
+    }
+
+    // 2. Also synchronize custom vendors created in vendor repository
     if (this.vendorRepo) {
       try {
         const allVendors = await this.vendorRepo.getVendors();
         for (const vendor of allVendors) {
-          // If this vendor was created by user and not yet in visit records:
           const alreadyRecorded = this.records.some(
             r =>
               (r.shopName && r.shopName.toLowerCase() === vendor.businessName.toLowerCase()) ||
@@ -60,11 +126,10 @@ export class FieldVisitService {
               pincode: vendor.pincodeId || '',
               timestamp: 'Today, Just now',
               isInterested: vendor.status !== VendorStatus.NOT_INTERESTED,
-              photoUrl: vendor.shopPhotoUrl || vendor.logoUrl || (vendor as any).photoUrl || 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400',
+              photoUrl: vendor.shopPhotoUrl || vendor.logoUrl || (vendor as any).photoUrl || undefined,
               gpsCoords: vendor.latitude && vendor.longitude ? `${vendor.latitude}° N, ${vendor.longitude}° E` : '',
             });
 
-            // Also make available for daily report
             if (!this.pendingDailyReportVendors.some(v => v.id === vendor.id)) {
               this.pendingDailyReportVendors.push(vendor);
             }
@@ -74,6 +139,7 @@ export class FieldVisitService {
         // Continue with current records
       }
     }
+
     return [...this.records];
   }
 
@@ -112,21 +178,28 @@ export class FieldVisitService {
       pincode: vendor.pincodeId || '',
       timestamp: dateFormatted,
       isInterested: isInterested && vendor.status !== VendorStatus.NOT_INTERESTED,
-      photoUrl: photoUrl || vendor.shopPhotoUrl || vendor.logoUrl || (vendor as any).photoUrl || 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400',
+      photoUrl: photoUrl || vendor.shopPhotoUrl || vendor.logoUrl || (vendor as any).photoUrl || undefined,
       reasonNotInterested: reason,
       gpsCoords: gpsCoords || (vendor.latitude && vendor.longitude ? `${vendor.latitude}° N, ${vendor.longitude}° E` : ''),
       voiceNoteDuration,
     };
 
-    // Prepend to top of visit records
     this.records = [newRecord, ...this.records];
 
-    // Also queue this vendor for the manager's Daily Report
     if (!this.pendingDailyReportVendors.some(v => v.id === vendor.id)) {
       this.pendingDailyReportVendors.push(vendor);
     }
 
     return newRecord;
+  }
+
+  /**
+   * Adds a vendor to pending daily report.
+   */
+  addPendingDailyReportVendor(vendor: Vendor): void {
+    if (!this.pendingDailyReportVendors.some(v => v.id === vendor.id)) {
+      this.pendingDailyReportVendors.push(vendor);
+    }
   }
 
   /**
@@ -137,19 +210,10 @@ export class FieldVisitService {
   }
 
   /**
-   * Adds a vendor directly into the daily report queue.
+   * Clears pending daily report vendors after submission.
    */
-  addPendingDailyReportVendor(vendor: Vendor): void {
-    if (!this.pendingDailyReportVendors.some(v => v.id === vendor.id)) {
-      this.pendingDailyReportVendors.push(vendor);
-    }
-  }
-
-  /**
-   * Removes a vendor from the daily report pending queue once handled.
-   */
-  removePendingDailyReportVendor(vendorId: string): void {
-    this.pendingDailyReportVendors = this.pendingDailyReportVendors.filter(v => v.id !== vendorId);
+  clearPendingDailyReportVendors(): void {
+    this.pendingDailyReportVendors = [];
   }
 }
 

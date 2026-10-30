@@ -96,6 +96,22 @@ export interface Manager {
     pincodeArea?: string;
     [key: string]: any;
   };
+  assignedSubAdminId?: string;
+  assignedSubAdminName?: string;
+  assignedSubAdminRole?: string;
+  assignedSubAdminPhone?: string;
+  assignedSubAdminEmail?: string;
+  assignedSubAdminAvatar?: string;
+  supervisor?: {
+    id?: string;
+    name: string;
+    designation: string;
+    territory: string;
+    phone?: string;
+    mobile?: string;
+    email?: string;
+    avatarUrl?: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -161,7 +177,6 @@ export enum Priority {
   LOW = 'LOW',
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL',
 }
 
 export enum TaskStatus {

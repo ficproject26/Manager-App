@@ -82,53 +82,66 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     loadDashboardData(true);
   };
 
-  const getActivityVisuals = (act: Activity, index: number) => {
-    if (index === 0) {
-      return {
-        bg: '#EFF6FF',
-        color: '#2563EB',
-        iconName: 'account-multiple-outline',
-        title: 'New vendor request received',
-        subtitle: act.entityName || 'Sri Foods - Tamil Nadu East',
-        time: '10:24 AM',
-      };
-    } else if (index === 1) {
-      return {
-        bg: '#ECFDF5',
-        color: '#10B981',
-        iconName: 'check-circle-outline',
-        title: 'KYC approved',
-        subtitle: act.entityName || 'ABC Traders - Tamil Nadu West',
-        time: '09:18 AM',
-      };
-    } else if (index === 2) {
-      return {
-        bg: '#FFFBEB',
-        color: '#F59E0B',
-        iconName: 'handshake-outline',
-        title: 'New tie-up created',
-        subtitle: act.entityName || 'Fresh Mart - Tamil Nadu North',
-        time: '12:30 PM',
-      };
-    } else if (index === 3) {
-      return {
-        bg: '#FEF2F2',
-        color: '#EF4444',
-        iconName: 'alert-circle-outline',
-        title: 'Issue escalated',
-        subtitle: act.entityName || 'Payment delay - Tamil Nadu South',
-        time: '02:00 PM',
-      };
-    } else {
-      return {
-        bg: '#F5F3FF',
-        color: '#8B5CF6',
-        iconName: 'file-document-outline',
-        title: 'Manager report submitted',
-        subtitle: act.entityName || 'Division A - Krishnagiri',
-        time: '04:30 PM',
-      };
+  const getActivityVisuals = (act: Activity, _index: number) => {
+    const actStr = String(act.metadata?.action || act.activityType || '').toLowerCase();
+    let bg = '#F1F5F9';
+    let color = '#475569';
+    let iconName = 'clipboard-text-outline';
+    let title: string = String(act.metadata?.action || act.activityType || 'Field Activity');
+
+    if (actStr.includes('visit')) {
+      bg = '#ECFDF5';
+      color = '#059669';
+      iconName = 'storefront-check-outline';
+      title = 'Shop Visit Recorded';
+    } else if (actStr.includes('vendor') || actStr.includes('onboard') || actStr.includes('created')) {
+      bg = '#EFF6FF';
+      color = '#2563EB';
+      iconName = 'account-plus-outline';
+      title = 'Vendor Registered';
+    } else if (actStr.includes('complete')) {
+      bg = '#ECFDF5';
+      color = '#10B981';
+      iconName = 'check-circle-outline';
+      title = 'Task Completed';
+    } else if (actStr.includes('task')) {
+      bg = '#F5F3FF';
+      color = '#7C3AED';
+      iconName = 'progress-wrench';
+      title = 'Task In Progress';
+    } else if (actStr.includes('issue')) {
+      bg = '#FEF2F2';
+      color = '#EF4444';
+      iconName = 'alert-circle-outline';
+      title = 'Issue Escalated';
+    } else if (actStr.includes('report')) {
+      bg = '#FFFBEB';
+      color = '#D97706';
+      iconName = 'file-document-outline';
+      title = 'Report Submitted';
     }
+
+    let subtitleStr: string = act.entityName || (typeof act.metadata?.description === 'string' ? act.metadata.description : '') || 'Field Operation';
+    if (subtitleStr.startsWith('Logged visit for ')) {
+      subtitleStr = subtitleStr.replace('Logged visit for ', '');
+    }
+
+    let timeStr: string = 'Recent';
+    if (act.timestamp) {
+      try {
+        const d = new Date(act.timestamp);
+        timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch {}
+    }
+
+    return {
+      bg,
+      color,
+      iconName,
+      title: String(title),
+      subtitle: String(subtitleStr),
+      time: String(timeStr),
+    };
   };
 
   if (isLoading && !isRefreshing) {
@@ -449,7 +462,90 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* TODAY'S ACTIVITIES */}
+        {/* DIRECT SUPERVISOR SECTION (Module 1) */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeading}>Direct Supervisor</Text>
+          <View style={styles.supervisorStatusBadge}>
+            <View style={styles.supervisorDot} />
+            <Text style={styles.supervisorStatusText}>Assigned Authority</Text>
+          </View>
+        </View>
+
+        {manager?.supervisor ? (
+          <View style={styles.supervisorCard}>
+            <View style={styles.supervisorTopRow}>
+              <FICAvatar
+                name={manager.supervisor.name}
+                sourceUrl={manager.supervisor.avatarUrl}
+                size={52}
+              />
+              <View style={styles.supervisorInfoCol}>
+                <View style={styles.supervisorNameRow}>
+                  <Text style={styles.supervisorName}>{manager.supervisor.name}</Text>
+                  <View style={styles.supervisorRoleBadge}>
+                    <Icon name="shield-check" size={13} color="#4338CA" />
+                    <Text style={styles.supervisorRoleText}>Admin</Text>
+                  </View>
+                </View>
+                <Text style={styles.supervisorDesignation}>{manager.supervisor.designation}</Text>
+                <View style={styles.supervisorTerritoryRow}>
+                  <Icon name="map-marker-outline" size={13} color="#64748B" />
+                  <Text style={styles.supervisorTerritoryText}>
+                    {manager.supervisor.territory || manager.state || 'Tamil Nadu'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.supervisorDivider} />
+
+            <View style={styles.supervisorContactRow}>
+              {manager.supervisor.phone ? (
+                <TouchableOpacity
+                  style={styles.supervisorContactBtn}
+                  activeOpacity={0.75}
+                  onPress={() => Linking.openURL(`tel:${manager.supervisor?.phone}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Call Supervisor"
+                >
+                  <View style={[styles.contactIconBg, { backgroundColor: '#ECFDF5' }]}>
+                    <Icon name="phone" size={16} color="#059669" />
+                  </View>
+                  <Text style={styles.supervisorContactText} numberOfLines={1}>
+                    {manager.supervisor.phone}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {manager.supervisor.email ? (
+                <TouchableOpacity
+                  style={styles.supervisorContactBtn}
+                  activeOpacity={0.75}
+                  onPress={() => Linking.openURL(`mailto:${manager.supervisor?.email}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Email Supervisor"
+                >
+                  <View style={[styles.contactIconBg, { backgroundColor: '#EFF6FF' }]}>
+                    <Icon name="email-outline" size={16} color="#2563EB" />
+                  </View>
+                  <Text style={styles.supervisorContactText} numberOfLines={1}>
+                    {manager.supervisor.email}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.emptySupervisorCard}>
+            <Icon name="shield-account-outline" size={32} color="#94A3B8" />
+            <Text style={styles.emptySupervisorTitle}>No Direct Supervisor Assigned</Text>
+            <Text style={styles.emptySupervisorSubtitle}>
+              Territory operations are currently self-directed for your authorized level.
+            </Text>
+          </View>
+        )}
+
+        {/* TODAY'S ACTIVITIES (Module 2: Manager-Specific Data Only) */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeading}>Today's Activities</Text>
           <TouchableOpacity
@@ -460,36 +556,43 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        <View style={styles.activityListCard}>
-          {activities.map((act, index) => {
-            const visual = getActivityVisuals(act, index);
-            const isLast = index === activities.length - 1;
-            return (
-              <TouchableOpacity
-                key={act.id || `act-${index}`}
-                style={[styles.activityItemRow, !isLast && styles.activityItemBorder]}
-                activeOpacity={0.7}
-                onPress={() => onNavigateRoute && onNavigateRoute('Reports')}
-              >
-                <View style={[styles.activityIconCircle, { backgroundColor: visual.bg }]}>
-                  <Icon name={visual.iconName} size={18} color={visual.color} />
-                </View>
-                <View style={styles.activityTextCol}>
-                  <Text style={styles.activityTitle} numberOfLines={1}>
-                    {visual.title}
-                  </Text>
-                  <Text style={styles.activitySubtitle} numberOfLines={1}>
-                    {visual.subtitle}
-                  </Text>
-                </View>
-                <View style={styles.activityRightMeta}>
-                  <Text style={styles.activityTimeText}>{visual.time}</Text>
-                  <Icon name="chevron-right" size={16} color="#94A3B8" style={{ marginLeft: 4 }} />
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {activities.length > 0 ? (
+          <View style={styles.activityListCard}>
+            {activities.map((act, index) => {
+              const visual = getActivityVisuals(act, index);
+              const isLast = index === activities.length - 1;
+              return (
+                <TouchableOpacity
+                  key={act.id || `act-${index}`}
+                  style={[styles.activityItemRow, !isLast && styles.activityItemBorder]}
+                  activeOpacity={0.7}
+                  onPress={() => onNavigateRoute && onNavigateRoute('Reports')}
+                >
+                  <View style={[styles.activityIconCircle, { backgroundColor: visual.bg }]}>
+                    <Icon name={visual.iconName} size={18} color={visual.color} />
+                  </View>
+                  <View style={styles.activityTextCol}>
+                    <Text style={styles.activityTitle} numberOfLines={1}>
+                      {visual.title}
+                    </Text>
+                    <Text style={styles.activitySubtitle} numberOfLines={1}>
+                      {visual.subtitle}
+                    </Text>
+                  </View>
+                  <View style={styles.activityRightMeta}>
+                    <Text style={styles.activityTimeText}>{visual.time}</Text>
+                    <Icon name="chevron-right" size={16} color="#94A3B8" style={{ marginLeft: 4 }} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.emptyActivityCard}>
+            <Icon name="calendar-check-outline" size={28} color="#94A3B8" />
+            <Text style={styles.emptyActivityText}>No activities recorded today yet.</Text>
+          </View>
+        )}
 
         {/* BOTTOM PROMOTIONAL BANNER */}
         <View style={styles.bottomPromoCard}>
@@ -983,5 +1086,160 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
     color: '#B45309',
+  },
+  /* Direct Supervisor Card Styles */
+  supervisorStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  supervisorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4338CA',
+    marginRight: 5,
+  },
+  supervisorStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4338CA',
+  },
+  supervisorCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  supervisorTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  supervisorInfoCol: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  supervisorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  supervisorName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  supervisorRoleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    gap: 3,
+  },
+  supervisorRoleText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#4338CA',
+  },
+  supervisorDesignation: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  supervisorTerritoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  supervisorTerritoryText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  supervisorDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 12,
+  },
+  supervisorContactRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  supervisorContactBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  contactIconBg: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  supervisorContactText: {
+    flex: 1,
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  emptySupervisorCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emptySupervisorTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 8,
+  },
+  emptySupervisorSubtitle: {
+    fontSize: 11.5,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 3,
+  },
+  emptyActivityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+  },
+  emptyActivityText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
   },
 });

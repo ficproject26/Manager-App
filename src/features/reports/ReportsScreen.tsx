@@ -134,12 +134,14 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
 
   const loadVisitRecords = useCallback(async () => {
     try {
+      console.log('[ReportsScreen] Calling getVisitRecords...');
       const list = await services.fieldVisitService.getVisitRecords();
-      if (list && list.length > 0) {
-        setRecords(list);
+      console.log('[ReportsScreen] Received list count:', list?.length);
+      if (list) {
+        setRecords([...list]);
       }
-    } catch {
-      // Keep existing initial records
+    } catch (err) {
+      console.warn('[ReportsScreen] loadVisitRecords error:', err);
     }
   }, []);
 
@@ -887,14 +889,16 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
           return (
             <FICCard style={styles.reportCard}>
               <View style={styles.cardHeaderRow}>
-                <Image
-                  source={{
-                    uri:
-                      item.photoUrl ||
-                      'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400',
-                  }}
-                  style={styles.cardShopImage}
-                />
+                {item.photoUrl ? (
+                  <Image
+                    source={{ uri: item.photoUrl }}
+                    style={styles.cardShopImage}
+                  />
+                ) : (
+                  <View style={[styles.cardShopImage, styles.cardShopImagePlaceholder]}>
+                    <Icon name="storefront-outline" size={24} color="#94A3B8" />
+                  </View>
+                )}
 
                 <View style={styles.cardMainCol}>
                   <View style={styles.cardTitleRow}>
@@ -1733,6 +1737,13 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: theme.radius.sm,
     backgroundColor: '#E2E8F0',
+  },
+  cardShopImagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   cardMainCol: {
     flex: 1,

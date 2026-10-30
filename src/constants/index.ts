@@ -27,5 +27,4 @@ export const PRIORITY_COLORS: Record<Priority, string> = {
   [Priority.HIGH]: '#DC2626',
   [Priority.MEDIUM]: '#D97706',
   [Priority.LOW]: '#2563EB',
-  [Priority.CRITICAL]: '#DC2626',
 };

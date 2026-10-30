@@ -375,7 +375,6 @@ export const MainDrawerNavigator: React.FC = () => {
     'VendorDetail',
     'VendorVisit',
     'AddVendor',
-    'TaskDetail',
     'IssueDetail',
     'ReportDetail',
     'ExceptionReportForm',
