@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from '../../theme';
 import { useAuth } from '../../hooks/useAuth';
+import { useLanguage } from '../../context/LanguageContext';
 import { services } from '../../services';
 import { AppNotification } from '../../types';
 import { FICHeader } from '../../components/ui/FICHeader';
@@ -68,18 +70,20 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
   onNavigateRoute,
 }) => {
   const { manager } = useAuth();
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
   const fetchNotifications = useCallback(
     async (isRefresh = false) => {
       if (!isRefresh) setIsLoading(true);
       setError(null);
       try {
-        const managerId = manager?.id || 'mgr-001';
+        const managerId = manager?.id || '';
         const list = await services.notificationRepository.getNotifications(managerId);
         setNotifications(list);
 
@@ -106,7 +110,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
 
   const handleMarkAllAsRead = async () => {
     try {
-      const managerId = manager?.id || 'mgr-001';
+      const managerId = manager?.id || '';
       await services.notificationRepository.markAllAsRead(managerId);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
@@ -135,6 +139,18 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
     }
   };
 
+  const filteredNotifications = useMemo(() => {
+    if (selectedCategory === 'ALL') return notifications;
+    return notifications.filter(n => {
+      const cat = String(n.category || (n as any).type || '').toLowerCase();
+      if (selectedCategory === 'TASKS') return cat.includes('task');
+      if (selectedCategory === 'REPORTS') return cat.includes('report');
+      if (selectedCategory === 'VENDORS') return cat.includes('vendor');
+      if (selectedCategory === 'ISSUES') return cat.includes('issue');
+      return true;
+    });
+  }, [notifications, selectedCategory]);
+
   if (isLoading && !isRefreshing) {
     return <FICLoadingState message="Loading notifications..." />;
   }
@@ -149,14 +165,14 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
     );
   }
 
-  const sections = groupNotifications(notifications);
+  const sections = groupNotifications(filteredNotifications);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor={theme.colors.primaryDark} barStyle="light-content" />
       <FICHeader
-        title="Notifications"
-        leftActionIcon={<Text style={styles.headerIcon}>☰</Text>}
+        title={t('header_notifications', 'Notifications')}
+        leftActionIcon={<Icon name="menu" size={24} color="#FFFFFF" />}
         onLeftAction={onOpenDrawer}
         rightActionIcon={
           unreadCount > 0 ? (
@@ -169,14 +185,38 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
       <View style={styles.container}>
         {/* Header Subtitle Bar */}
         <View style={styles.topSection}>
-          <Text style={styles.subtitleText}>Stay updated with your latest activities</Text>
+          <Text style={styles.subtitleText}>Stay updated with operational alerts</Text>
           {unreadCount > 0 ? (
             <View style={styles.badgeChip}>
               <Text style={styles.badgeChipText}>🔔 {unreadCount} Unread</Text>
             </View>
           ) : (
-            <Text style={styles.allReadText}>All notifications read ✓</Text>
+            <Text style={styles.allReadText}>All caught up ✓</Text>
           )}
+        </View>
+
+        {/* Category Filters */}
+        <View style={styles.filterRow}>
+          {[
+            { key: 'ALL', label: 'All' },
+            { key: 'TASKS', label: 'Tasks' },
+            { key: 'VENDORS', label: 'Vendors' },
+            { key: 'REPORTS', label: 'Reports' },
+            { key: 'ISSUES', label: 'Issues' },
+          ].map(f => {
+            const active = selectedCategory === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[styles.filterPill, active && styles.filterPillActive]}
+                onPress={() => setSelectedCategory(f.key)}
+              >
+                <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Grouped Notifications SectionList */}
@@ -203,7 +243,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
           ListEmptyComponent={
             <FICEmptyState
               title="No Notifications"
-              description="You're all caught up."
+              description="No notifications match the selected category."
             />
           }
         />
@@ -276,6 +316,33 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 8,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  filterPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+  },
+  filterPillActive: {
+    backgroundColor: '#1D4ED8',
+  },
+  filterPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  filterPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   listContent: {
     paddingHorizontal: theme.spacing.md,

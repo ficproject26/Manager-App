@@ -38,12 +38,8 @@ export const AuthNavigator: React.FC = () => {
       <OtpVerificationExampleScreen
         onBack={() => setCurrentScreen('LOGIN')}
         onLoginSuccess={async () => {
-          // Auto-login to demo account upon successful verification
-          try {
-            await login('ramesh@forge.in', 'Password123');
-          } catch (e) {
-            console.log('OTP login fallback error:', e);
-          }
+          // Return to login screen for authorized manager credentials
+          setCurrentScreen('LOGIN');
         }}
       />
     );

@@ -174,6 +174,10 @@ export class ApiClient {
     return this.request<T>(endpoint, { ...options, method: 'POST', body });
   }
 
+  put<T>(endpoint: string, body: unknown, options?: ApiRequestOptions): Promise<ApiResponseEnvelope<T>> {
+    return this.request<T>(endpoint, { ...options, method: 'PUT', body });
+  }
+
   patch<T>(endpoint: string, body: unknown, options?: ApiRequestOptions): Promise<ApiResponseEnvelope<T>> {
     return this.request<T>(endpoint, { ...options, method: 'PATCH', body });
   }

@@ -884,7 +884,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   </View>
                   <View style={styles.activityItemContent}>
                     <Text style={styles.activityItemTitle}>Visited outlet</Text>
-                    <Text style={styles.activityItemSubtitle}>ABC Traders - Main Branch (by Ramesh)</Text>
+                    <Text style={styles.activityItemSubtitle}>{vendor.businessName} - Verified Location</Text>
                   </View>
                   <View style={styles.activityItemRight}>
                     <Text style={styles.activityItemTime}>2 days ago</Text>

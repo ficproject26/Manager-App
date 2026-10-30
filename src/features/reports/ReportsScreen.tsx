@@ -162,7 +162,8 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
   };
 
   const isMyReport = (record: VisitRecord): boolean => {
-    const myName = (authManager?.name || 'Ramesh').toLowerCase();
+    if (!authManager?.name) return false;
+    const myName = authManager.name.toLowerCase();
     return (record.managerName || '').toLowerCase().includes(myName);
   };
 
@@ -476,7 +477,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
       shopName: formShopName.trim(),
       vendorCode: `vendor${formShopName.replaceAll(/\s+/g, '').toUpperCase().slice(0, 8)}`,
       category: formCategory,
-      managerName: authManager?.name || 'Ramesh Kumar',
+      managerName: authManager?.name || 'Authenticated Manager',
       managerRole: authManager?.role ? authManager.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'State Manager',
       location: authManager?.territoryName || 'Chennai, Tamil Nadu',
       pincode: authManager?.pincodeId || '600001',
@@ -524,7 +525,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
       shopName: formShopName.trim(),
       vendorCode: `vendor${formShopName.replaceAll(/\s+/g, '').toUpperCase().slice(0, 8)}`,
       category: formCategory,
-      managerName: authManager?.name || 'Ramesh Kumar',
+      managerName: authManager?.name || 'Authenticated Manager',
       managerRole: authManager?.role ? authManager.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'State Manager',
       location: authManager?.territoryName || 'Chennai, Tamil Nadu',
       pincode: authManager?.pincodeId || '600001',

@@ -181,16 +181,18 @@ export const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
 
         const updated = await services.taskRepository.completeTask(task.id, photoPayload);
         setTask(updated);
-        await services.activityRepository.logActivity({
-          managerId: manager?.id || 'mgr-001',
-          activityType: 'TASK_COMPLETED',
-          entityId: task.id,
-          entityName: task.title,
-          stateId: manager?.stateId || 'st-mp-01',
-          districtId: manager?.districtId || 'dt-indore-01',
-          divisionId: manager?.divisionId || 'div-north-01',
-          pincodeId: manager?.pincodeId || '452001',
-        });
+        if (manager?.id) {
+          await services.activityRepository.logActivity({
+            managerId: manager.id,
+            activityType: 'TASK_COMPLETED',
+            entityId: task.id,
+            entityName: task.title,
+            stateId: manager.stateId || manager.state || '',
+            districtId: manager.districtId || '',
+            divisionId: manager.divisionId || '',
+            pincodeId: manager.pincodeId || '',
+          }).catch(() => {});
+        }
         Alert.alert(
           'Task Completed',
           'Task status set to Completed! You can now generate an official Task Completion Report.'
@@ -335,16 +337,18 @@ export const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
 
       const updated = await services.taskRepository.completeTask(task.id, photoPayload);
       setTask(updated);
-      await services.activityRepository.logActivity({
-        managerId: manager?.id || 'mgr-001',
-        activityType: 'TASK_COMPLETED',
-        entityId: task.id,
-        entityName: task.title,
-        stateId: manager?.stateId || 'st-mp-01',
-        districtId: manager?.districtId || 'dt-indore-01',
-        divisionId: manager?.divisionId || 'div-north-01',
-        pincodeId: manager?.pincodeId || '452001',
-      });
+      if (manager?.id) {
+        await services.activityRepository.logActivity({
+          managerId: manager.id,
+          activityType: 'TASK_COMPLETED',
+          entityId: task.id,
+          entityName: task.title,
+          stateId: manager.stateId || manager.state || '',
+          districtId: manager.districtId || '',
+          divisionId: manager.divisionId || '',
+          pincodeId: manager.pincodeId || '',
+        }).catch(() => {});
+      }
       Alert.alert('Task Completed', 'Task & real-time proof of work photos logged successfully.');
     } catch {
       Alert.alert('Error', 'Unable to complete task.');
@@ -380,16 +384,18 @@ export const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
         photoPayload
       );
       setTask(updated);
-      await services.activityRepository.logActivity({
-        managerId: manager?.id || 'mgr-001',
-        activityType: 'HIGH_TASK_RESOLVED',
-        entityId: task.id,
-        entityName: task.title,
-        stateId: manager?.stateId || 'st-mp-01',
-        districtId: manager?.districtId || 'dt-indore-01',
-        divisionId: manager?.divisionId || 'div-north-01',
-        pincodeId: manager?.pincodeId || '452001',
-      });
+      if (manager?.id) {
+        await services.activityRepository.logActivity({
+          managerId: manager.id,
+          activityType: 'HIGH_TASK_RESOLVED',
+          entityId: task.id,
+          entityName: task.title,
+          stateId: manager.stateId || manager.state || '',
+          districtId: manager.districtId || '',
+          divisionId: manager.divisionId || '',
+          pincodeId: manager.pincodeId || '',
+        }).catch(() => {});
+      }
       Alert.alert(
         'Task Resolved',
         'Mandatory resolution logged. Supervisor has been notified.',
@@ -424,8 +430,7 @@ export const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
     );
   }
 
-  const isCritical = task.priority === Priority.CRITICAL;
-  const isHighPriority = task.priority === Priority.HIGH || isCritical;
+  const isHighPriority = task.priority === Priority.HIGH;
   const isCompleted = task.status === TaskStatus.COMPLETED || task.status === TaskStatus.RESOLVED;
   const isPending = task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED;
   const isInProgress = task.status === TaskStatus.IN_PROGRESS || task.status === TaskStatus.ACCEPTED;
@@ -455,14 +460,14 @@ export const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
           </FICCard>
         ) : null}
 
-        {/* Priority Banner for High / Critical Priority */}
+        {/* Priority Banner for High Priority */}
         {isHighPriority && !isCompleted ? (
-          <FICCard style={[styles.card, isCritical ? styles.criticalNotice : styles.highPriorityNotice]}>
-            <Text style={[styles.highPriorityTitle, isCritical && { color: '#991B1B' }]}>
-              {isCritical ? '🚨 CRITICAL DIRECTIVE' : '⚡ MANDATORY RESOLUTION'}
+          <FICCard style={[styles.card, styles.highPriorityNotice]}>
+            <Text style={styles.highPriorityTitle}>
+              ⚡ HIGH PRIORITY OPERATIONAL DIRECTIVE
             </Text>
             <Text style={styles.highPriorityDesc}>
-              This is a high-priority operational directive. Please ensure resolution within the assigned SLA window.
+              This is a high-priority operational directive. Please ensure field resolution within the assigned SLA window.
             </Text>
           </FICCard>
         ) : null}
@@ -554,6 +559,38 @@ export const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </FICCard>
+
+        {/* SUB ADMIN ASSIGNMENT CARD */}
+        <FICCard style={[styles.card, { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <Icon name="shield-account" size={20} color="#4338CA" />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#1E1B4B' }}>Sub Admin Assignment & Authority</Text>
+          </View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Assigning Authority:</Text>
+            <Text style={[styles.metaValue, { fontWeight: '700', color: '#4338CA' }]}>
+              {task.createdByAdminName || task.assignedBy || 'Sub Admin'}
+            </Text>
+          </View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Authority Role:</Text>
+            <Text style={styles.metaValue}>
+              {task.createdByAdminRole || 'State Operations Sub Admin'}
+            </Text>
+          </View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>Assigned On:</Text>
+            <Text style={styles.metaValue}>
+              {new Date(task.assignedDate || task.createdAt).toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>SLA Deadline:</Text>
+            <Text style={[styles.metaValue, { color: isHighPriority ? '#DC2626' : '#D97706', fontWeight: '700' }]}>
+              {task.dueDate || task.dueSla || 'Standard 48-Hour Field Window'}
+            </Text>
           </View>
         </FICCard>
 

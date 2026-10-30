@@ -24,8 +24,8 @@ export const WORKFLOW_RULES = {
 };
 
 export const PRIORITY_COLORS: Record<Priority, string> = {
-  [Priority.CRITICAL]: '#991B1B',
   [Priority.HIGH]: '#DC2626',
   [Priority.MEDIUM]: '#D97706',
   [Priority.LOW]: '#2563EB',
+  [Priority.CRITICAL]: '#DC2626',
 };

@@ -24,8 +24,7 @@ export class HttpTaskRepository implements ITaskRepository {
 
   private mapPriority(rawPriority: any): Priority {
     const p = String(rawPriority || '').toUpperCase().trim();
-    if (p === 'URGENT' || p === 'CRITICAL') return Priority.CRITICAL;
-    if (p === 'HIGH') return Priority.HIGH;
+    if (p === 'HIGH' || p === 'URGENT' || p === 'CRITICAL') return Priority.HIGH;
     if (p === 'LOW') return Priority.LOW;
     return Priority.MEDIUM;
   }
@@ -72,7 +71,13 @@ export class HttpTaskRepository implements ITaskRepository {
       districtId: raw.districtId || raw.district || '',
       stateId: raw.stateId || raw.state || '',
       dueSla: raw.dueDate || raw.dueSla || raw.createdAt || new Date().toISOString(),
-      assignedBy: raw.assignedBy || raw.createdByName || raw.receivingAdminName || '',
+      dueDate: raw.dueDate || raw.dueSla,
+      assignedBy: raw.assignedBy || raw.createdByAdminName || raw.createdByName || 'Sub Admin',
+      createdByAdminName: raw.createdByAdminName || raw.assignedBy || raw.createdByName || 'Sub Admin',
+      createdByAdminRole: raw.createdByAdminRole || 'Sub Admin',
+      assignmentStatus: raw.assignmentStatus,
+      executionStatus: raw.executionStatus,
+      progress: typeof raw.progress === 'number' ? raw.progress : undefined,
       territory,
       notes: raw.notes || raw.remarks || '',
       voiceNoteUrl: voiceNote,
@@ -121,13 +126,13 @@ export class HttpTaskRepository implements ITaskRepository {
 
   async acceptTask(taskId: string): Promise<Task> {
     const token = await this.getToken();
-    const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, { status: 'In Progress' }, { token });
+    const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, { action: 'accept', status: 'Accepted' }, { token });
     return this.normalizeTask(response.data);
   }
 
   async startTask(taskId: string): Promise<Task> {
     const token = await this.getToken();
-    const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, { status: 'In Progress' }, { token });
+    const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, { action: 'start', status: 'In Progress' }, { token });
     return this.normalizeTask(response.data);
   }
 
@@ -139,13 +144,13 @@ export class HttpTaskRepository implements ITaskRepository {
 
   async resumeTask(taskId: string): Promise<Task> {
     const token = await this.getToken();
-    const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, { status: 'In Progress' }, { token });
+    const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, { action: 'start', status: 'In Progress' }, { token });
     return this.normalizeTask(response.data);
   }
 
   async rejectTask(taskId: string, reason: string): Promise<Task> {
     const token = await this.getToken();
-    const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, { status: 'Rejected', rejectionReason: reason }, { token });
+    const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, { action: 'reject', status: 'Rejected', reason, rejectionReason: reason }, { token });
     return this.normalizeTask(response.data);
   }
 
@@ -159,14 +164,14 @@ export class HttpTaskRepository implements ITaskRepository {
 
   async completeTask(taskId: string, payload?: any): Promise<Task> {
     const token = await this.getToken();
-    const body = typeof payload === 'string' ? { status: 'Completed', notes: payload } : { status: 'Completed', ...payload };
+    const body = typeof payload === 'string' ? { action: 'complete', status: 'Completed', notes: payload } : { action: 'complete', status: 'Completed', ...payload };
     const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, body, { token });
     return this.normalizeTask(response.data);
   }
 
   async resolveHighPriorityTask(taskId: string, resolutionNotes: string, payload?: any): Promise<Task> {
     const token = await this.getToken();
-    const body = { status: 'Completed', notes: resolutionNotes, ...payload };
+    const body = { action: 'complete', status: 'Completed', notes: resolutionNotes, ...payload };
     const response = await apiClient.patch<any>(`/qc-tasks/tasks/${taskId}/status`, body, { token });
     return this.normalizeTask(response.data);
   }

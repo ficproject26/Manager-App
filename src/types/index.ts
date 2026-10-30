@@ -25,12 +25,36 @@ export interface TerritoryScope {
   pincodeId?: string;
 }
 
+export interface BankDetails {
+  accountHolderName: string;
+  bankName: string;
+  branchName: string;
+  city: string;
+  street?: string | null;
+  accountNumber: string;
+  ifscCode: string;
+}
+
+export interface ManagerPortalSettings {
+  emailAlerts?: boolean;
+  kycAlerts?: boolean;
+  statusChangeAlerts?: boolean;
+  dailyDigest?: boolean;
+  theme?: string;
+  autoAssignTasks?: boolean;
+  territoryAlertRadiusKm?: number;
+}
+
+export type Language = 'en' | 'hi' | 'ta' | 'te' | 'kn';
+
 export interface Manager {
   id: string;
   name: string;
   email: string;
   phone: string;
+  mobile?: string;
   role: ManagerRole;
+  level?: number;
   stateId: string;
   state?: string;
   districtId?: string;
@@ -41,9 +65,37 @@ export interface Manager {
   pincodeId?: string;
   pincode?: string;
   profileImage?: string;
+  avatarUrl?: string;
+  avatar?: string;
   employeeId?: string;
   territoryName?: string;
-  status?: 'ACTIVE' | 'INACTIVE';
+  status?: 'ACTIVE' | 'INACTIVE' | 'under_review' | 'active';
+  activeSince?: string;
+  activatedAt?: string;
+  dob?: string;
+  gender?: string;
+  residentialAddress?: any;
+  aadharNumber?: string;
+  panNumber?: string;
+  documents?: {
+    aadharNumber?: string;
+    panNumber?: string;
+    [key: string]: any;
+  };
+  bankDetails?: BankDetails | null;
+  bankAccount?: BankDetails | null;
+  accountNumber?: string;
+  bankName?: string;
+  branchName?: string;
+  ifscCode?: string;
+  scope?: {
+    stateName?: string;
+    districtName?: string;
+    divisionName?: string;
+    pincodeCode?: string;
+    pincodeArea?: string;
+    [key: string]: any;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -142,6 +194,13 @@ export interface Task {
   rejectionReason?: string;
   dueSla?: string;
   assignedBy?: string;
+  createdByAdminName?: string;
+  createdByAdminRole?: string;
+  assignedDate?: string;
+  dueDate?: string;
+  assignmentStatus?: string;
+  executionStatus?: string;
+  progress?: number;
   territory?: string;
   notes?: string;
   voiceNoteUrl?: string;

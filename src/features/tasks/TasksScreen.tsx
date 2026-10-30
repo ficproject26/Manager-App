@@ -189,7 +189,6 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
 
   const priorityOptions = [
     { label: 'All Priorities', value: 'ALL' },
-    { label: 'Critical Priority', value: Priority.CRITICAL },
     { label: 'High Priority', value: Priority.HIGH },
     { label: 'Medium Priority', value: Priority.MEDIUM },
     { label: 'Low Priority', value: Priority.LOW },
@@ -197,47 +196,38 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
 
   const getPriorityAccentColor = (priority: Priority) => {
     switch (priority) {
-      case Priority.CRITICAL:
-        return '#EF4444';
       case Priority.HIGH:
-        return '#F59E0B';
+        return '#DC2626';
       case Priority.MEDIUM:
-        return '#2563EB';
+        return '#F59E0B';
       case Priority.LOW:
       default:
-        return '#64748B';
+        return '#10B981';
     }
   };
 
   const renderPriorityBadge = (priority: Priority) => {
     switch (priority) {
-      case Priority.CRITICAL:
-        return (
-          <View style={[styles.priorityPill, { backgroundColor: '#EF4444' }]}>
-            <Icon name="alert-circle" size={13} color="#FFFFFF" />
-            <Text style={styles.priorityPillText}>Critical</Text>
-          </View>
-        );
       case Priority.HIGH:
         return (
-          <View style={[styles.priorityPill, { backgroundColor: '#F59E0B' }]}>
-            <Icon name="arrow-up-circle" size={13} color="#FFFFFF" />
-            <Text style={styles.priorityPillText}>High</Text>
+          <View style={[styles.priorityPill, { backgroundColor: '#DC2626' }]}>
+            <Icon name="alert-circle" size={13} color="#FFFFFF" />
+            <Text style={styles.priorityPillText}>High Priority</Text>
           </View>
         );
       case Priority.MEDIUM:
         return (
-          <View style={[styles.priorityPill, { backgroundColor: '#2563EB' }]}>
-            <Icon name="circle" size={10} color="#FFFFFF" />
-            <Text style={styles.priorityPillText}>Medium</Text>
+          <View style={[styles.priorityPill, { backgroundColor: '#F59E0B' }]}>
+            <Icon name="arrow-up-circle" size={13} color="#FFFFFF" />
+            <Text style={styles.priorityPillText}>Medium Priority</Text>
           </View>
         );
       case Priority.LOW:
       default:
         return (
-          <View style={[styles.priorityPill, { backgroundColor: '#64748B' }]}>
-            <Icon name="arrow-down-circle" size={13} color="#FFFFFF" />
-            <Text style={styles.priorityPillText}>Low</Text>
+          <View style={[styles.priorityPill, { backgroundColor: '#10B981' }]}>
+            <Icon name="check-circle-outline" size={13} color="#FFFFFF" />
+            <Text style={styles.priorityPillText}>Low Priority</Text>
           </View>
         );
     }
@@ -324,6 +314,16 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
         <Text style={styles.taskTitle} numberOfLines={2}>
           {item.title}
         </Text>
+
+        {/* Sub Admin Assignment Badge */}
+        {Boolean(item.createdByAdminName || item.assignedBy) && (
+          <View style={styles.subAdminTagRow}>
+            <Icon name="shield-account" size={13} color="#4338CA" />
+            <Text style={styles.subAdminTagText} numberOfLines={1}>
+              Sub Admin: {item.createdByAdminName || item.assignedBy}
+            </Text>
+          </View>
+        )}
 
         {/* Bottom Details Row: Location & Due SLA on left, Status on right */}
         <View style={styles.cardBottomRow}>
@@ -797,7 +797,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0F172A',
     lineHeight: 21,
-    marginBottom: 10,
+    marginBottom: 6,
+  },
+  subAdminTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  subAdminTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4338CA',
   },
   cardBottomRow: {
     flexDirection: 'row',

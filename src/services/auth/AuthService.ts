@@ -61,16 +61,16 @@ export class MockAuthService implements IAuthService {
     // Determine mock manager profile based on input role hint or email
     let mockManager: Manager;
 
-    if (lowerUsername.includes('ramesh') || lowerUsername.includes('state')) {
+    if (lowerUsername.includes('modi') || lowerUsername.includes('state')) {
       mockManager = {
-        id: 'mgr-000',
-        name: 'Ramesh',
-        email: username.includes('@') ? username : 'ramesh.state@forgeindia.in',
+        id: 'b7bea01e-31ba-4004-ad49-1d4fbb314531',
+        name: 'Modi',
+        email: username.includes('@') ? username : 'modi@forge.in',
         phone: '9876543200',
         role: ManagerRole.STATE_MANAGER,
-        stateId: 'st-tn-01',
-        districtId: 'dt-chn-01',
-        employeeId: 'FM1000',
+        stateId: 'Tamil Nadu',
+        districtId: 'Chennai',
+        employeeId: 'MGR-STA-20261023-5542',
         territoryName: 'Tamil Nadu',
         status: 'ACTIVE',
         createdAt: '2025-01-01T00:00:00Z',

@@ -90,11 +90,15 @@ export const MainDrawerNavigator: React.FC = () => {
         setCurrentRoute('Issues');
         return true;
       }
-      if (route === 'Issues' || route === 'Leaderboard' || route === 'Notifications' || route === 'Profile' || route === 'Settings') {
-        setCurrentRoute('MoreMenu');
+      if (route === 'Settings') {
+        setCurrentRoute('Profile');
         return true;
       }
-      if (route === 'MoreMenu') {
+      if (route === 'Issues' || route === 'Leaderboard' || route === 'Notifications') {
+        setCurrentRoute('Profile');
+        return true;
+      }
+      if (route === 'Profile' || route === 'MoreMenu') {
         setCurrentRoute('Dashboard');
         return true;
       }

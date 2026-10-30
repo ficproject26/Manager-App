@@ -278,12 +278,12 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
   }, [rawEntries, appliedState, appliedDistrict, appliedDivision, appliedPincode, searchQuery]);
 
   // Current logged in user's position in this filtered view
-  const currentLoggedInId = manager?.id || 'mgr-000';
+  const currentLoggedInId = manager?.id || '';
   const currentUserRankEntry = useMemo(() => {
     return filteredEntries.find(
       e =>
-        e.managerId === currentLoggedInId ||
-        e.managerName.toLowerCase().includes((manager?.name || 'Ramesh').toLowerCase())
+        (currentLoggedInId && e.managerId === currentLoggedInId) ||
+        (manager?.name && e.managerName.toLowerCase().includes(manager.name.toLowerCase()))
     );
   }, [filteredEntries, currentLoggedInId, manager?.name]);
 
@@ -428,8 +428,8 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({
 
   const renderRankingItem = ({ item }: { item: LeaderboardEntry }) => {
     const isCurrentUser =
-      item.managerId === currentLoggedInId ||
-      item.managerName.toLowerCase().includes((manager?.name || 'Ramesh').toLowerCase());
+      (Boolean(currentLoggedInId) && item.managerId === currentLoggedInId) ||
+      (Boolean(manager?.name) && item.managerName.toLowerCase().includes((manager?.name || '').toLowerCase()));
     const formattedRank = item.rank < 10 ? `0${item.rank}` : `${item.rank}`;
     const badge = getRoleBadgeInfo(item.role);
 

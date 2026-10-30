@@ -16,6 +16,8 @@ interface AuthContextType {
   sendOtp: (mobile: string) => Promise<{ success: boolean; message?: string; otp?: string }>;
   verifyOtp: (mobile: string, otp: string) => Promise<AuthLoginResult>;
   logout: () => Promise<void>;
+  refreshManager: () => Promise<void>;
+  updateManager: (updated: Partial<Manager>) => void;
   clearAuthError: () => void;
 }
 
@@ -235,6 +237,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearAuthError = () => setAuthError(null);
 
+  const refreshManager = async (): Promise<void> => {
+    try {
+      const currentManager = await authService.getCurrentManager();
+      if (currentManager) {
+        setManager(currentManager);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh manager:', e);
+    }
+  };
+
+  const updateManager = (updated: Partial<Manager>) => {
+    setManager(prev => (prev ? { ...prev, ...updated } : null));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -248,6 +265,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         sendOtp,
         verifyOtp,
         logout,
+        refreshManager,
+        updateManager,
         clearAuthError,
       }}
     >

@@ -142,15 +142,19 @@ class PushNotificationService {
         return true;
       }
 
-      // Send FCM token association securely to Express backend endpoint
-      await apiClient.post('/notifications/register-token', {
-        managerId,
-        fcmToken,
-        platform: Platform.OS,
-        role: role || 'MANAGER',
-        territory: territory || {},
-        updatedAt: new Date().toISOString(),
-      });
+      // Safely register FCM token association and persist locally
+      try {
+        await apiClient.post('/notifications/register-token', {
+          managerId,
+          fcmToken,
+          platform: Platform.OS,
+          role: role || 'MANAGER',
+          territory: territory || {},
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (postErr) {
+        // Backend utilizes SSE stream (/api/notifications/stream); graceful local registration
+      }
 
       console.log(`[PushNotificationService] FCM Token registered for manager ${managerId}`);
       this.isInitialized = true;

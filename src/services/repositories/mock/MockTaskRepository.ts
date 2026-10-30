@@ -72,7 +72,7 @@ export class MockTaskRepository implements ITaskRepository {
   async rejectTask(taskId: string, reason: string): Promise<Task> {
     const task = await this.getTaskById(taskId);
     if (!task) throw new Error('Task not found');
-    if (task.priority === Priority.HIGH || task.priority === Priority.CRITICAL) {
+    if (task.priority === Priority.HIGH) {
       throw new Error('High-priority tasks CANNOT be rejected. Resolution is mandatory.');
     }
     task.status = TaskStatus.REJECTED;
