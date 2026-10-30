@@ -143,9 +143,9 @@ export class HttpAuthService implements IAuthService {
     }
   }
 
-  async sendOtp(mobile: string): Promise<{ success: boolean; message?: string }> {
+  async sendOtp(mobile: string): Promise<{ success: boolean; message?: string; otp?: string }> {
     try {
-      const response = await apiClient.post<{ success: boolean; message: string }>(
+      const response = await apiClient.post<{ success: boolean; message: string; otp?: string }>(
         '/auth/send-otp',
         { mobile: mobile.trim() },
         { timeoutMs: 10000 }
@@ -153,6 +153,7 @@ export class HttpAuthService implements IAuthService {
       return {
         success: true,
         message: response.message || 'OTP dispatched to registered mobile number.',
+        otp: (response as any)?.otp || response.otp,
       };
     } catch (error: any) {
       return {
@@ -240,15 +241,22 @@ export class HttpAuthService implements IAuthService {
     if (!token) return null;
 
     try {
-      const response = await apiClient.get<any>('/auth/me', { token, timeoutMs: 6000 });
+      const response = await apiClient.get<any>('/auth/me', { token, timeoutMs: 15000 });
       const rawUser = response.user || response.data?.user || response.data;
       if (rawUser && (rawUser.id || rawUser._id || rawUser.email)) {
         const manager = this.normalizeManager(rawUser);
         await services.storageService.setItem('ACTIVE_MGR_OBJECT', JSON.stringify(manager));
         return manager;
       }
-    } catch (err) {
-      console.warn('[HttpAuthService] /auth/me call error, checking cached credentials:', err);
+    } catch (err: any) {
+      console.warn('[HttpAuthService] /auth/me call error:', err);
+      // If server explicitly returned 401/403, session has expired. Wipe invalid session!
+      if (err?.status === 401 || err?.status === 403 || err?.code === 'UNAUTHORIZED') {
+        await services.storageService.clearAuthTokens();
+        await services.storageService.removeItem('ACTIVE_MGR_ID');
+        await services.storageService.removeItem('ACTIVE_MGR_OBJECT');
+        return null;
+      }
     }
 
     // Offline cache fallback (only cached previously authenticated user, never mock)

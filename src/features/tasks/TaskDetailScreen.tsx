@@ -102,8 +102,8 @@ export const TaskDetailScreen: React.FC<TaskDetailScreenProps> = ({
       } else {
         setTask(data);
       }
-    } catch {
-      setError('Unable to load task');
+    } catch (err: any) {
+      setError(err?.message || 'Unable to load task');
     } finally {
       setIsLoading(false);
     }

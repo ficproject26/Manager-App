@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -44,17 +44,32 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isFetchingRef = useRef<boolean>(false);
+
   const fetchTasks = useCallback(
     async (isRefresh = false) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
       if (!isRefresh) setIsLoading(true);
       setError(null);
       try {
-        const managerId = manager?.id || 'mgr-001';
+        const managerId = manager?.id || '';
         const list = await services.taskRepository.getTasks(managerId);
         setAllTasks(list);
-      } catch {
-        setError('Unable to load tasks');
+        setError(null);
+      } catch (err: any) {
+        console.warn('[TasksScreen] Error loading tasks:', err);
+        if (err?.status === 401 || err?.code === 'SESSION_REVOKED') {
+          setError('Your session has expired. Please log in again to access tasks.');
+        } else if (err?.code === 'TIMEOUT' || err?.status === 408) {
+          setError('Task request timed out. Please tap Retry to reload.');
+        } else if (err?.code === 'NETWORK_ERROR') {
+          setError(err?.message || 'Network connection failed. Please check your connection and tap Retry.');
+        } else {
+          setError(err?.message || 'Unable to load tasks from server.');
+        }
       } finally {
+        isFetchingRef.current = false;
         setIsLoading(false);
         setIsRefreshing(false);
       }

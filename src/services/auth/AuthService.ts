@@ -18,7 +18,7 @@ export interface IAuthService {
   loginWithManager(manager: Manager): Promise<AuthLoginResult>;
   logout(): Promise<void>;
   getCurrentManager(): Promise<Manager | null>;
-  sendOtp?(mobile: string): Promise<{ success: boolean; message?: string }>;
+  sendOtp?(mobile: string): Promise<{ success: boolean; message?: string; otp?: string }>;
   verifyOtp?(mobile: string, otp: string): Promise<AuthLoginResult>;
 }
 

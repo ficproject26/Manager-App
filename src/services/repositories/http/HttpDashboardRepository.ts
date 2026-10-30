@@ -8,12 +8,39 @@ import { apiClient } from '../../api/ApiClient';
 import { services } from '../../index';
 
 export class HttpDashboardRepository implements IDashboardRepository {
+  private inFlightDashboardPromise: Promise<any> | null = null;
+
   private async getToken(): Promise<string | null> {
     return services.storageService.getAuthToken();
   }
 
-  async getDashboardSummary(managerId: string): Promise<DashboardSummaryData> {
+  private async fetchDashboardData(): Promise<any> {
+    if (this.inFlightDashboardPromise) {
+      return this.inFlightDashboardPromise;
+    }
+
     const token = await this.getToken();
+    this.inFlightDashboardPromise = apiClient
+      .get<any>('/reports/dashboard', {
+        token,
+        timeoutMs: 30000,
+      })
+      .then((res) => {
+        // Reset in-flight promise after 3 seconds so subsequent manual refreshes hit the server
+        setTimeout(() => {
+          this.inFlightDashboardPromise = null;
+        }, 3000);
+        return res;
+      })
+      .catch((err) => {
+        this.inFlightDashboardPromise = null;
+        throw err;
+      });
+
+    return this.inFlightDashboardPromise;
+  }
+
+  async getDashboardSummary(managerId: string): Promise<DashboardSummaryData> {
     const storedMgrObj = await services.storageService.getItem('ACTIVE_MGR_OBJECT');
     let cachedManager: any = null;
     if (storedMgrObj) {
@@ -22,10 +49,7 @@ export class HttpDashboardRepository implements IDashboardRepository {
       } catch {}
     }
 
-    const response = await apiClient.get<any>('/reports/dashboard', {
-      token,
-      timeoutMs: 10000,
-    });
+    const response = await this.fetchDashboardData();
 
     const resData = response.data || response;
     const kpis = resData?.kpiMetrics || resData?.kpis || resData?.stats || {};
@@ -54,11 +78,7 @@ export class HttpDashboardRepository implements IDashboardRepository {
 
   async getRecentActivities(managerId: string, limit: number = 10): Promise<Activity[]> {
     try {
-      const token = await this.getToken();
-      const response = await apiClient.get<any>('/reports/dashboard', {
-        token,
-        timeoutMs: 10000,
-      });
+      const response = await this.fetchDashboardData();
 
       const resData = response.data || response;
       const rawActivities = resData?.recentActivities || resData?.todayActivities || [];

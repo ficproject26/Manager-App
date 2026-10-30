@@ -63,6 +63,7 @@ import { HttpLeaderboardRepository } from './repositories/http/HttpLeaderboardRe
 import { HttpDailyReportRepository } from './repositories/http/HttpDailyReportRepository';
 import { HttpNotificationRepository } from './repositories/http/HttpNotificationRepository';
 import { HttpMediaUploadService } from './uploads/HttpMediaUploadService';
+import { setApiAuthTokenProvider } from './api/ApiClient';
 
 export const services: ServiceContainer = {
   vendorRepository: ENV.useMockData ? new MockVendorRepository() : new HttpVendorRepository(),
@@ -83,3 +84,5 @@ export const services: ServiceContainer = {
 };
 
 fieldVisitService.setVendorRepository(services.vendorRepository);
+
+setApiAuthTokenProvider(async () => services.storageService.getAuthToken());

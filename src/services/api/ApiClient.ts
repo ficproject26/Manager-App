@@ -28,6 +28,12 @@ export interface ApiResponseEnvelope<T> {
   [key: string]: any;
 }
 
+let tokenProvider: (() => Promise<string | null>) | null = null;
+
+export const setApiAuthTokenProvider = (provider: () => Promise<string | null>) => {
+  tokenProvider = provider;
+};
+
 export class ApiClient {
   private baseUrl: string;
 
@@ -61,11 +67,18 @@ export class ApiClient {
       ...headers,
     };
 
-    if (token) {
-      requestHeaders.Authorization = `Bearer ${token}`;
+    let activeToken = token;
+    if (!activeToken && tokenProvider) {
+      try {
+        activeToken = await tokenProvider();
+      } catch {}
     }
 
-    const timeoutMs = options.timeoutMs || 3000;
+    if (activeToken) {
+      requestHeaders.Authorization = `Bearer ${activeToken}`;
+    }
+
+    const timeoutMs = options.timeoutMs || ENV.apiTimeoutMs || 30000;
 
     for (const baseUrl of candidateUrls) {
       const url = `${baseUrl}${endpoint}${queryString}`;
@@ -130,6 +143,13 @@ export class ApiClient {
         if (error?.status) {
           // It was a valid HTTP response with an error status (e.g. 401, 403, 404)
           throw error;
+        }
+        if (error?.name === 'AbortError') {
+          throw {
+            status: 408,
+            code: 'TIMEOUT',
+            message: `Network request timed out after ${Math.round(timeoutMs / 1000)} seconds. Please check your connection and retry.`,
+          };
         }
         lastError = error;
         // Network error or timeout, try next candidate baseUrl

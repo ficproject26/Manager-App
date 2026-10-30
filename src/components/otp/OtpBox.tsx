@@ -13,12 +13,14 @@ interface OtpBoxProps {
   collapseProgress: Animated.Value;
 }
 
-const ROW_X_OFFSETS = [-87, -29, 29, 87];
+const ROW_X_OFFSETS = [-130, -78, -26, 26, 78, 130];
 const CIRCLE_OFFSETS = [
   { x: -OTP_CONFIG.ORBIT_RADIUS, y: 0 },
-  { x: 0, y: -OTP_CONFIG.ORBIT_RADIUS },
+  { x: -Math.round(OTP_CONFIG.ORBIT_RADIUS * 0.5), y: -Math.round(OTP_CONFIG.ORBIT_RADIUS * 0.866) },
+  { x: Math.round(OTP_CONFIG.ORBIT_RADIUS * 0.5), y: -Math.round(OTP_CONFIG.ORBIT_RADIUS * 0.866) },
   { x: OTP_CONFIG.ORBIT_RADIUS, y: 0 },
-  { x: 0, y: OTP_CONFIG.ORBIT_RADIUS },
+  { x: Math.round(OTP_CONFIG.ORBIT_RADIUS * 0.5), y: Math.round(OTP_CONFIG.ORBIT_RADIUS * 0.866) },
+  { x: -Math.round(OTP_CONFIG.ORBIT_RADIUS * 0.5), y: Math.round(OTP_CONFIG.ORBIT_RADIUS * 0.866) },
 ];
 
 export const OtpBox: React.FC<OtpBoxProps> = React.memo(
@@ -88,15 +90,19 @@ export const OtpBox: React.FC<OtpBoxProps> = React.memo(
       prevDigit.current = digit;
     }, [digit, digitScale, digitOpacity]);
 
-    // Box position interpolations
+    // Box position interpolations with safe bounds fallback
+    const targetRowX = ROW_X_OFFSETS[index] !== undefined ? ROW_X_OFFSETS[index] : (index - 2.5) * 52;
+    const targetCircleX = CIRCLE_OFFSETS[index]?.x ?? 0;
+    const targetCircleY = CIRCLE_OFFSETS[index]?.y ?? 0;
+
     const translateX = gatherProgress.interpolate({
       inputRange: [0, 1],
-      outputRange: [ROW_X_OFFSETS[index], CIRCLE_OFFSETS[index].x],
+      outputRange: [targetRowX, targetCircleX],
     });
 
     const translateY = gatherProgress.interpolate({
       inputRange: [0, 1],
-      outputRange: [0, CIRCLE_OFFSETS[index].y],
+      outputRange: [0, targetCircleY],
     });
 
     const boxScale = collapseProgress.interpolate({

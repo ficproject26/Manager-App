@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -39,8 +39,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const isFetchingRef = useRef<boolean>(false);
 
   const loadDashboardData = useCallback(async (isRefresh = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     if (!isRefresh) setIsLoading(true);
     setError(null);
     try {
@@ -51,9 +54,20 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       ]);
       setSummary(summaryRes);
       setActivities(activityRes);
+      setError(null);
     } catch (err: any) {
-      setError(err?.message || 'Failed to load dashboard data.');
+      console.warn('[DashboardScreen] Error loading dashboard:', err);
+      if (err?.status === 401 || err?.code === 'UNAUTHORIZED' || err?.code === 'SESSION_REVOKED') {
+        setError('Your session has expired. Please log in again.');
+      } else if (err?.code === 'TIMEOUT' || err?.status === 408) {
+        setError('Dashboard request timed out. Please tap Retry to reload.');
+      } else if (err?.code === 'NETWORK_ERROR') {
+        setError(err?.message || 'Network connection failed. Please check your connection and tap Retry.');
+      } else {
+        setError(err?.message || 'Unable to load dashboard data.');
+      }
     } finally {
+      isFetchingRef.current = false;
       setIsLoading(false);
       setIsRefreshing(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -68,9 +68,12 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const isFetchingRef = useRef<boolean>(false);
 
   const fetchVendors = useCallback(
     async (isRefresh = false) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
       if (!isRefresh) setIsLoading(true);
       setError(null);
       try {
@@ -80,11 +83,11 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
           pincodeId: manager?.role === 'STATE_MANAGER' ? undefined : manager?.pincodeId,
         };
 
-        const totalList = await services.vendorRepository.getVendors(filterOpts);
-        setAllVendors(totalList);
-
+        const hasSearch = Boolean(searchQuery.trim());
+        const isFilterModified = selectedFilter !== 'ALL';
         const queryOpts: VendorFilterOptions = { ...filterOpts };
-        if (searchQuery.trim()) {
+
+        if (hasSearch) {
           queryOpts.searchQuery = searchQuery.trim();
         }
 
@@ -96,9 +99,28 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
           queryOpts.activeState = 'INACTIVE';
         }
 
-        let filteredList = await services.vendorRepository.getVendors(queryOpts);
+        let totalList: Vendor[];
+        let filteredList: Vendor[];
+
+        if (hasSearch || isFilterModified) {
+          const results = await Promise.all([
+            services.vendorRepository.getVendors(filterOpts),
+            services.vendorRepository.getVendors(queryOpts),
+          ]);
+          totalList = results[0];
+          filteredList = results[1];
+        } else {
+          // Default: exactly one clean call to getVendors
+          totalList = await services.vendorRepository.getVendors(filterOpts);
+          filteredList = totalList;
+        }
+
+        setAllVendors(totalList);
+
         if (selectedCategory !== 'ALL') {
-          filteredList = filteredList.filter(v => v.category?.toLowerCase() === selectedCategory.toLowerCase());
+          filteredList = filteredList.filter(
+            (v) => v.category?.toLowerCase() === selectedCategory.toLowerCase()
+          );
         }
 
         if (sortBy === 'NAME_ASC') {
@@ -112,9 +134,20 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
         }
 
         setVendors(filteredList);
-      } catch (err) {
-        setError('Unable to load vendors for your territory.');
+        setError(null);
+      } catch (err: any) {
+        console.warn('[VendorsScreen] Error loading vendors:', err);
+        if (err?.status === 401 || err?.code === 'UNAUTHORIZED' || err?.code === 'SESSION_REVOKED') {
+          setError('Your session has expired. Please log in again.');
+        } else if (err?.code === 'TIMEOUT' || err?.status === 408) {
+          setError('Vendor request timed out. Please tap Retry to reload.');
+        } else if (err?.code === 'NETWORK_ERROR') {
+          setError(err?.message || 'Network connection failed. Please check your connection and tap Retry.');
+        } else {
+          setError(err?.message || 'Unable to load vendors for your territory.');
+        }
       } finally {
+        isFetchingRef.current = false;
         setIsLoading(false);
         setIsRefreshing(false);
       }
@@ -347,7 +380,7 @@ export const VendorsScreen: React.FC<VendorsScreenProps> = ({
         {/* VENDORS FLATLIST */}
         <FlatList
           data={vendors}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.id || (item as any)._id || String(Math.random())}
           renderItem={({ item }) => (
             <VendorCard vendor={item} onPress={handleVendorPress} />
           )}

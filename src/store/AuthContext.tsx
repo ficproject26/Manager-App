@@ -13,7 +13,7 @@ interface AuthContextType {
   authError: string | null;
   login: (username: string, password: string) => Promise<AuthLoginResult>;
   loginWithManager: (manager: Manager) => Promise<AuthLoginResult>;
-  sendOtp: (mobile: string) => Promise<{ success: boolean; message?: string }>;
+  sendOtp: (mobile: string) => Promise<{ success: boolean; message?: string; otp?: string }>;
   verifyOtp: (mobile: string, otp: string) => Promise<AuthLoginResult>;
   logout: () => Promise<void>;
   clearAuthError: () => void;
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const sendOtp = async (mobile: string): Promise<{ success: boolean; message?: string }> => {
+  const sendOtp = async (mobile: string): Promise<{ success: boolean; message?: string; otp?: string }> => {
     setIsLoading(true);
     setAuthError(null);
     try {

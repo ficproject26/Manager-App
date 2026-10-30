@@ -163,6 +163,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     try {
       const result = await sendOtp(targetPhone);
       if (result.success) {
+        if (result.otp) {
+          setGeneratedOtp(result.otp);
+          triggerNotificationBanner(result.otp, 'Manager');
+        }
         setOtpStep('VERIFY');
         setResendTimer(30);
       } else {
@@ -588,46 +592,50 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {/* ═══════════════════════════════════════════════════════════ */}
             {/* MODE 2 - STEP 2: ANIMATED OTP VALIDATION & LOGIN            */}
             {/* ═══════════════════════════════════════════════════════════ */}
-            {activeTab === 'OTP' && otpStep === 'VERIFY' && matchedManager && (
+            {activeTab === 'OTP' && otpStep === 'VERIFY' && (
               <View style={styles.otpVerifyContainer}>
                 {/* Manager Greeting Card */}
-                <View style={styles.managerInfoCard}>
-                  <View style={styles.managerAvatarBox}>
-                    <Icon name="account-tie" size={24} color="#0B4A8B" />
+                {matchedManager ? (
+                  <View style={styles.managerInfoCard}>
+                    <View style={styles.managerAvatarBox}>
+                      <Icon name="account-tie" size={24} color="#0B4A8B" />
+                    </View>
+                    <View style={styles.managerInfoText}>
+                      <Text style={styles.managerWelcome}>Logging in as</Text>
+                      <Text style={styles.managerName}>{matchedManager.name}</Text>
+                      <Text style={styles.managerRole}>
+                        {matchedManager.role.replace(/_/g, ' ')} • {matchedManager.territoryName}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.managerInfoText}>
-                    <Text style={styles.managerWelcome}>Logging in as</Text>
-                    <Text style={styles.managerName}>{matchedManager.name}</Text>
-                    <Text style={styles.managerRole}>
-                      {matchedManager.role.replace(/_/g, ' ')} • {matchedManager.territoryName}
-                    </Text>
-                  </View>
-                </View>
+                ) : null}
 
                 {/* The Animated OTP Verification Component */}
                 <View style={styles.otpCardWrapper}>
                   <OtpVerification
                     ref={otpRef}
-                    length={4}
+                    length={6}
                     phoneNumber={`+91 ${phone.slice(0, 2)} •••• ${phone.slice(-2)}`}
                     title="Enter Verification Code"
-                    subtitle="4-digit code sent via local notification"
+                    subtitle="6-digit code sent via SMS/notification"
                     verify={handleOtpVerify}
                     onVerified={handleOtpVerified}
                   />
                 </View>
 
                 {/* Instant Quick Auto-Fill OTP Button */}
-                <TouchableOpacity
-                  style={styles.autoFillOtpBtn}
-                  onPress={() => handleAutoFillOtp(generatedOtp)}
-                  activeOpacity={0.8}
-                >
-                  <Icon name="lightning-bolt" size={18} color="#0B4A8B" style={{ marginRight: 6 }} />
-                  <Text style={styles.autoFillOtpBtnText}>
-                    Quick Auto-Fill ({generatedOtp || '4719'})
-                  </Text>
-                </TouchableOpacity>
+                {generatedOtp ? (
+                  <TouchableOpacity
+                    style={styles.autoFillOtpBtn}
+                    onPress={() => handleAutoFillOtp(generatedOtp)}
+                    activeOpacity={0.8}
+                  >
+                    <Icon name="lightning-bolt" size={18} color="#0B4A8B" style={{ marginRight: 6 }} />
+                    <Text style={styles.autoFillOtpBtnText}>
+                      Quick Auto-Fill ({generatedOtp})
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
 
                 {/* Resend & Change Phone Controls */}
                 <View style={styles.otpActionsRow}>

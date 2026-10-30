@@ -21,7 +21,7 @@ export const ENV: AppEnvironment = {
   mongoDbAtlasUri: '',
   enableAnalytics: false,
   enablePushNotifications: false,
-  apiTimeoutMs: 15000,
+  apiTimeoutMs: 30000,
   useMockData: false,
 };
 
