@@ -227,7 +227,7 @@ export class ApiClient {
           }
           const xhr = new XMLHttpRequest();
           xhr.open('POST', targetUrl, true);
-          xhr.timeout = 2500;
+          xhr.timeout = 45000;
           xhr.setRequestHeader('Accept', 'application/json');
 
           if (options.token) {

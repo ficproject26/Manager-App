@@ -35,6 +35,13 @@ export interface VendorDetailScreenProps {
 
 type TabType = 'Overview' | 'Activity' | 'Issues' | 'Outlets';
 
+const getVendorInitials = (name?: string): string => {
+  if (!name || !name.trim()) return 'VP';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+};
+
 export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
   vendorId,
   onBack,
@@ -141,24 +148,6 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
     }
   };
 
-  const handleEditContact = () => {
-    Alert.alert(
-      'Edit Contact',
-      `Edit contact details for ${vendor?.businessName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Edit in Form',
-          onPress: () => {
-            if (onNavigateRoute && vendor) {
-              onNavigateRoute('AddVendor', { editVendorId: vendor.id });
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleMoreOptions = () => {
     Alert.alert(
       vendor?.businessName || 'Vendor Options',
@@ -224,18 +213,19 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
 
   const statusInfo = getStatusBadge();
 
-  const getVendorImageSource = () => {
-    const customPhoto = vendor.shopPhotoUrl || vendor.logoUrl || (vendor as any).photoUrl || (vendor as any).imageUri || (vendor as any).storefrontPhotoUri;
-    if (customPhoto) {
-      return { uri: customPhoto };
-    }
-    if (vendor.imageKey && VENDOR_ASSETS[vendor.imageKey]) {
-      return VENDOR_ASSETS[vendor.imageKey];
-    }
-    return VENDOR_ASSETS.abc_traders;
+  const getVendorValidPhotoUri = (): string | null => {
+    return (
+      vendor.shopPhotoUrl ||
+      vendor.logoUrl ||
+      (vendor as any).photoUrl ||
+      (vendor as any).imageUri ||
+      (vendor as any).storefrontPhotoUri ||
+      (Array.isArray((vendor as any).documents) && (vendor as any).documents[0]?.url) ||
+      null
+    );
   };
 
-  const imageSource = getVendorImageSource();
+  const validPhotoUri = getVendorValidPhotoUri();
 
   const tabs: TabType[] = ['Overview', 'Activity', 'Issues', 'Outlets'];
 
@@ -256,12 +246,21 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
         {/* HERO HEADER CARD */}
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
-            {/* Storefront Image */}
-            <Image
-              source={imageSource}
-              style={styles.storefrontImage}
-              resizeMode="cover"
-            />
+            {/* Storefront Image or Neutral Initials Avatar */}
+            {validPhotoUri ? (
+              <Image
+                source={{ uri: validPhotoUri }}
+                style={styles.storefrontImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.storefrontImage, styles.avatarPlaceholder]}>
+                <Icon name="storefront-outline" size={28} color="#2563EB" style={{ marginBottom: 2 }} />
+                <Text style={styles.avatarInitials} numberOfLines={1}>
+                  {getVendorInitials(vendor.businessName || vendor.name)}
+                </Text>
+              </View>
+            )}
 
             {/* Middle Details */}
             <View style={styles.heroCenterCol}>
@@ -283,7 +282,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
               <View style={styles.locationRow}>
                 <Icon name="map-marker-outline" size={13} color="#64748B" style={{ marginRight: 4 }} />
                 <Text style={styles.locationText} numberOfLines={1}>
-                  {vendor.locationDistrict || 'Dharmapuri, Tamil Nadu'}
+                  {vendor.locationDistrict || vendor.address || 'Field Location'}
                 </Text>
               </View>
             </View>
@@ -329,7 +328,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
             >
               <Icon name="storefront-outline" size={18} color="#2563EB" style={{ marginRight: 8 }} />
               <View>
-                <Text style={styles.capsuleNumber}>{vendor.outletCount || 12}</Text>
+                <Text style={styles.capsuleNumber}>{vendor.outletCount ?? 1}</Text>
                 <Text style={styles.capsuleLabel}>Outlets</Text>
               </View>
             </TouchableOpacity>
@@ -395,10 +394,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   <Text style={styles.cardHeaderTitle}>Contact Information</Text>
                 </View>
 
-                <TouchableOpacity style={styles.editButton} onPress={handleEditContact} activeOpacity={0.7}>
-                  <Icon name="pencil-outline" size={13} color="#2563EB" style={{ marginRight: 4 }} />
-                  <Text style={styles.editText}>Edit</Text>
-                </TouchableOpacity>
+
               </View>
 
               <View style={styles.contactItemsRow}>
@@ -410,7 +406,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   <View style={styles.contactTextCol}>
                     <Text style={styles.contactLabel}>Phone</Text>
                     <Text style={styles.contactValue} numberOfLines={1}>
-                      {vendor.phone || '+91 98765 43210'}
+                      {vendor.phone || 'Not Available'}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -418,7 +414,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                 {/* Email */}
                 <TouchableOpacity
                   style={styles.contactItemCol}
-                  onPress={() => Linking.openURL(`mailto:${vendor.email || 'abc@traders.com'}`).catch(() => {})}
+                  onPress={() => Linking.openURL(`mailto:${vendor.email || ''}`).catch(() => {})}
                   activeOpacity={0.7}
                 >
                   <View style={[styles.contactIconCircle, { backgroundColor: '#EFF6FF' }]}>
@@ -427,7 +423,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   <View style={styles.contactTextCol}>
                     <Text style={styles.contactLabel}>Email</Text>
                     <Text style={styles.contactValue} numberOfLines={1}>
-                      {vendor.email || 'abc@traders.com'}
+                      {vendor.email || 'Not Available'}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -440,7 +436,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   <View style={styles.contactTextCol}>
                     <Text style={styles.contactLabel}>Contact Person</Text>
                     <Text style={styles.contactValue} numberOfLines={1}>
-                      {vendor.vendorName || 'Rajesh Kumar'}
+                      {vendor.vendorName || vendor.name || 'Not Available'}
                     </Text>
                   </View>
                 </View>
@@ -481,7 +477,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   </View>
                   <View style={styles.gridCol}>
                     <Text style={styles.gridLabel}>GST Number (Masked)</Text>
-                    <Text style={styles.gridValue}>{maskGSTIN(vendor.gstNumber || '33ABCDE1234F1Z5')}</Text>
+                    <Text style={styles.gridValue}>{(vendor.gstNumber ? maskGSTIN(vendor.gstNumber) : 'Not Provided')}</Text>
                   </View>
                 </View>
 
@@ -489,11 +485,11 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                 <View style={[styles.gridRow, { marginTop: 14 }]}>
                   <View style={styles.gridCol}>
                     <Text style={styles.gridLabel}>Year of Establishment</Text>
-                    <Text style={styles.gridValue}>{vendor.yearOfEstablishment || '2018'}</Text>
+                    <Text style={styles.gridValue}>{vendor.yearOfEstablishment || 'N/A'}</Text>
                   </View>
                   <View style={styles.gridCol}>
                     <Text style={styles.gridLabel}>Total Outlets</Text>
-                    <Text style={styles.gridValue}>{vendor.outletCount || 12}</Text>
+                    <Text style={styles.gridValue}>{vendor.outletCount ?? 1}</Text>
                   </View>
                   <View style={styles.gridCol}>
                     <Text style={styles.gridLabel}>Assigned Manager</Text>
@@ -514,10 +510,34 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                     <Icon name="shield-check" size={15} color="#059669" style={{ marginRight: 5 }} />
                     <Text style={styles.kycSectionTitle}>Statutory KYC Documents</Text>
                   </View>
-                  <View style={styles.kycVerifiedBadge}>
-                    <Icon name="check-circle" size={11} color="#059669" style={{ marginRight: 3 }} />
-                    <Text style={styles.kycVerifiedBadgeText}>Verified</Text>
-                  </View>
+                  {(() => {
+                    const rawKyc = String(
+                      (vendor as any).kycStatus ||
+                      (vendor as any).approvalStatus ||
+                      ((vendor.status as any) === 'Active' || vendor.status === VendorStatus.ONBOARDED ? 'Verified' : 'Pending')
+                    ).toLowerCase();
+                    const isVerified = rawKyc.includes('verif') || rawKyc.includes('approved') || rawKyc.includes('complete');
+                    const isRejected = rawKyc.includes('reject');
+                    const hasAadhaar = Boolean(vendor.aadhaarNumber && vendor.aadhaarNumber.length >= 4);
+                    const hasPan = Boolean(vendor.panNumber || (vendor.gstNumber && vendor.gstNumber.length >= 10));
+                    const hasAnyDocs =
+                      (Array.isArray((vendor as any).documents) && (vendor as any).documents.length > 0) ||
+                      hasAadhaar ||
+                      hasPan ||
+                      Boolean(vendor.aadhaarUrl || vendor.panUrl);
+
+                    const badgeText = isVerified ? 'Verified' : isRejected ? 'Rejected' : hasAnyDocs ? 'KYC Pending' : 'Not Uploaded';
+                    const badgeColor = isVerified ? '#059669' : isRejected ? '#DC2626' : hasAnyDocs ? '#D97706' : '#64748B';
+                    const badgeBg = isVerified ? '#DCFCE7' : isRejected ? '#FEE2E2' : hasAnyDocs ? '#FEF3C7' : '#F1F5F9';
+                    const badgeIcon = isVerified ? 'check-circle' : isRejected ? 'close-circle' : hasAnyDocs ? 'clock-outline' : 'file-remove-outline';
+
+                    return (
+                      <View style={[styles.kycVerifiedBadge, { backgroundColor: badgeBg, borderColor: badgeColor, borderWidth: 1 }]}>
+                        <Icon name={badgeIcon} size={11} color={badgeColor} style={{ marginRight: 3 }} />
+                        <Text style={[styles.kycVerifiedBadgeText, { color: badgeColor }]}>{badgeText}</Text>
+                      </View>
+                    );
+                  })()}
                 </View>
 
                 <View style={styles.kycDocsRow}>
@@ -525,24 +545,28 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   <TouchableOpacity
                     style={styles.kycDocCard}
                     activeOpacity={0.85}
-                    onPress={() =>
-                      setPreviewDocModal({
-                        visible: true,
-                        title: 'Aadhaar Card',
-                        docType: 'AADHAAR',
-                        imageUri: vendor.aadhaarUrl || null,
-                        docNumber: vendor.aadhaarNumber ? `XXXX XXXX ${vendor.aadhaarNumber.slice(-4)}` : 'XXXX XXXX 4123',
-                      })
-                    }
+                    onPress={() => {
+                      if (vendor.aadhaarUrl || vendor.aadhaarNumber) {
+                        setPreviewDocModal({
+                          visible: true,
+                          title: 'Aadhaar Card',
+                          docType: 'AADHAAR',
+                          imageUri: vendor.aadhaarUrl || null,
+                          docNumber: vendor.aadhaarNumber ? `•••• •••• ${vendor.aadhaarNumber.slice(-4)}` : 'Not Uploaded',
+                        });
+                      }
+                    }}
                   >
                     <View style={styles.kycDocTopBar}>
                       <View style={styles.kycDocTagWrap}>
                         <Icon name="card-account-details-outline" size={13} color="#0284C7" />
                         <Text style={styles.kycDocTag}>Aadhaar Card</Text>
                       </View>
-                      <View style={styles.kycDocZoomBadge}>
-                        <Icon name="arrow-expand" size={11} color="#64748B" />
-                      </View>
+                      {vendor.aadhaarUrl ? (
+                        <View style={styles.kycDocZoomBadge}>
+                          <Icon name="arrow-expand" size={11} color="#64748B" />
+                        </View>
+                      ) : null}
                     </View>
 
                     <View style={styles.kycDocPreviewBox}>
@@ -553,34 +577,23 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                           resizeMode="cover"
                         />
                       ) : (
-                        <View style={styles.aadhaarCardGraphic}>
-                          <View style={styles.aadhaarTricolorStripe}>
-                            <View style={[styles.stripePart, { backgroundColor: '#FF9933' }]} />
-                            <View style={[styles.stripePart, { backgroundColor: '#FFFFFF' }]} />
-                            <View style={[styles.stripePart, { backgroundColor: '#138808' }]} />
-                          </View>
-                          <Text style={styles.aadhaarHeaderText}>Govt. of India / UIDAI</Text>
-                          <View style={styles.aadhaarBody}>
-                            <View style={styles.aadhaarPhotoThumb}>
-                              <Icon name="account" size={18} color="#64748B" />
-                            </View>
-                            <View style={styles.aadhaarInfoCol}>
-                              <Text style={styles.aadhaarOwnerName} numberOfLines={1}>{vendor.vendorName || 'Card Holder'}</Text>
-                              <Text style={styles.aadhaarNumberSmall}>
-                                {vendor.aadhaarNumber ? `XXXX XXXX ${vendor.aadhaarNumber.slice(-4)}` : 'XXXX XXXX 4123'}
-                              </Text>
-                            </View>
-                          </View>
+                        <View style={styles.kycEmptyDocPlaceholder}>
+                          <Icon name="card-account-details-outline" size={26} color="#94A3B8" />
+                          <Text style={styles.kycEmptyDocStatus}>
+                            {vendor.aadhaarNumber ? `•••• •••• ${vendor.aadhaarNumber.slice(-4)}` : 'No Image Uploaded'}
+                          </Text>
                         </View>
                       )}
-                      <View style={styles.kycTapOverlay}>
-                        <Icon name="magnify" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
-                        <Text style={styles.kycTapText}>Preview</Text>
-                      </View>
+                      {vendor.aadhaarUrl && (
+                        <View style={styles.kycTapOverlay}>
+                          <Icon name="magnify" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
+                          <Text style={styles.kycTapText}>Preview</Text>
+                        </View>
+                      )}
                     </View>
 
                     <Text style={styles.kycDocNumberText}>
-                      {vendor.aadhaarNumber ? `XXXX XXXX ${vendor.aadhaarNumber.slice(-4)}` : 'XXXX XXXX 4123'}
+                      {vendor.aadhaarNumber ? `•••• •••• ${vendor.aadhaarNumber.slice(-4)}` : 'Not Provided'}
                     </Text>
                   </TouchableOpacity>
 
@@ -588,24 +601,28 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   <TouchableOpacity
                     style={styles.kycDocCard}
                     activeOpacity={0.85}
-                    onPress={() =>
-                      setPreviewDocModal({
-                        visible: true,
-                        title: 'PAN Card',
-                        docType: 'PAN',
-                        imageUri: vendor.panUrl || null,
-                        docNumber: maskPAN(vendor.panNumber || (vendor.gstNumber ? vendor.gstNumber.slice(2, 12) : 'ABCDE1234F')),
-                      })
-                    }
+                    onPress={() => {
+                      if (vendor.panUrl || vendor.panNumber || vendor.gstNumber) {
+                        setPreviewDocModal({
+                          visible: true,
+                          title: 'PAN Card',
+                          docType: 'PAN',
+                          imageUri: vendor.panUrl || null,
+                          docNumber: vendor.panNumber ? maskPAN(vendor.panNumber) : 'Not Uploaded',
+                        });
+                      }
+                    }}
                   >
                     <View style={styles.kycDocTopBar}>
                       <View style={styles.kycDocTagWrap}>
                         <Icon name="credit-card-outline" size={13} color="#D97706" />
                         <Text style={[styles.kycDocTag, { color: '#B45309' }]}>PAN Card</Text>
                       </View>
-                      <View style={styles.kycDocZoomBadge}>
-                        <Icon name="arrow-expand" size={11} color="#64748B" />
-                      </View>
+                      {vendor.panUrl ? (
+                        <View style={styles.kycDocZoomBadge}>
+                          <Icon name="arrow-expand" size={11} color="#64748B" />
+                        </View>
+                      ) : null}
                     </View>
 
                     <View style={styles.kycDocPreviewBox}>
@@ -616,34 +633,56 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                           resizeMode="cover"
                         />
                       ) : (
-                        <View style={styles.panCardGraphic}>
-                          <View style={styles.panCardHeaderStripe}>
-                            <Text style={styles.panHeaderText}>INCOME TAX DEPARTMENT</Text>
-                          </View>
-                          <View style={styles.panBody}>
-                            <View style={styles.panPhotoThumb}>
-                              <Icon name="account" size={18} color="#64748B" />
-                            </View>
-                            <View style={styles.panInfoCol}>
-                              <Text style={styles.panOwnerName} numberOfLines={1}>{vendor.vendorName || 'Tax Payer'}</Text>
-                              <Text style={styles.panNumberSmall}>
-                                {maskPAN(vendor.panNumber || (vendor.gstNumber ? vendor.gstNumber.slice(2, 12) : 'ABCDE1234F'))}
-                              </Text>
-                            </View>
-                          </View>
+                        <View style={styles.kycEmptyDocPlaceholder}>
+                          <Icon name="credit-card-outline" size={26} color="#94A3B8" />
+                          <Text style={styles.kycEmptyDocStatus}>
+                            {vendor.panNumber ? maskPAN(vendor.panNumber) : 'No Image Uploaded'}
+                          </Text>
                         </View>
                       )}
-                      <View style={styles.kycTapOverlay}>
-                        <Icon name="magnify" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
-                        <Text style={styles.kycTapText}>Preview</Text>
-                      </View>
+                      {vendor.panUrl && (
+                        <View style={styles.kycTapOverlay}>
+                          <Icon name="magnify" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
+                          <Text style={styles.kycTapText}>Preview</Text>
+                        </View>
+                      )}
                     </View>
 
                     <Text style={styles.kycDocNumberText}>
-                      {maskPAN(vendor.panNumber || (vendor.gstNumber ? vendor.gstNumber.slice(2, 12) : 'ABCDE1234F'))}
+                      {vendor.panNumber ? maskPAN(vendor.panNumber) : 'Not Provided'}
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Real Documents List if present */}
+                {Array.isArray((vendor as any).documents) && (vendor as any).documents.length > 0 && (
+                  <View style={{ marginTop: 12 }}>
+                    <Text style={[styles.gridLabel, { marginBottom: 6 }]}>
+                      Attached KYC Files ({(vendor as any).documents.length})
+                    </Text>
+                    {(vendor as any).documents.map((doc: any, dIdx: number) => (
+                      <TouchableOpacity
+                        key={doc._id || doc.id || dIdx}
+                        style={styles.kycUploadedDocRow}
+                        onPress={() => {
+                          if (doc.url) Linking.openURL(doc.url).catch(() => {});
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Icon name="file-document-outline" size={18} color="#2563EB" style={{ marginRight: 8 }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.kycUploadedDocName} numberOfLines={1}>
+                            {doc.name || doc.filename || `KYC_Document_${dIdx + 1}`}
+                          </Text>
+                          <Text style={styles.kycUploadedDocType}>
+                            {doc.type || 'Document'} {doc.size ? `• ${(doc.size / 1024).toFixed(0)} KB` : ''}
+                          </Text>
+                        </View>
+                        <Icon name="open-in-new" size={14} color="#2563EB" />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
 
@@ -659,7 +698,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   </View>
 
                   <Text style={styles.addressText}>
-                    {vendor.address || '123, Main Road, Dharmapuri, Tamil Nadu'}
+                    {vendor.address || 'Address not provided'}
                     {vendor.pincodeId ? `\nPIN: ${vendor.pincodeId}` : ''}
                   </Text>
                 </View>
@@ -1036,29 +1075,52 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                   <View style={[styles.cardHeaderIconBox, { backgroundColor: '#EFF6FF' }]}>
                     <Icon name="storefront-outline" size={18} color="#2563EB" />
                   </View>
-                  <Text style={styles.cardHeaderTitle}>Outlets & Branches (12)</Text>
+                  <Text style={styles.cardHeaderTitle}>
+                    Outlets & Branches ({Array.isArray((vendor as any).outlets) ? (vendor as any).outlets.length : 1})
+                  </Text>
                 </View>
               </View>
 
-              {[
-                { name: 'ABC Traders - Main Branch', address: '123, Main Road, Dharmapuri - 636701', manager: 'Rajesh Kumar', phone: '+91 98765 43210' },
-                { name: 'ABC Supermarket - Pennagaram', address: '45, Pennagaram Road, Dharmapuri', manager: 'Suresh M', phone: '+91 98765 43211' },
-                { name: 'ABC Express - Harur', address: '18, Bazaar Street, Harur', manager: 'V. Anandan', phone: '+91 98765 43212' },
-                { name: 'ABC Mini Mart - Palacode', address: '7, Station Road, Palacode', manager: 'K. Karthik', phone: '+91 98765 43213' },
-                { name: 'ABC Wholesale - Morappur', address: '92, Railway Feeders Rd, Morappur', manager: 'P. Selvam', phone: '+91 98765 43214' },
-                { name: 'ABC Provisions - Karimangalam', address: 'Salem Main Road, Karimangalam', manager: 'M. Dinesh', phone: '+91 98765 43215' },
-              ].map((outlet, idx) => (
-                <View key={idx} style={[styles.outletItemCard, idx > 0 && { marginTop: 10 }]}>
+              {Array.isArray((vendor as any).outlets) && (vendor as any).outlets.length > 0 ? (
+                (vendor as any).outlets.map((outlet: any, idx: number) => (
+                  <View key={idx} style={[styles.outletItemCard, idx > 0 && { marginTop: 10 }]}>
+                    <View style={styles.outletTopRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.outletName}>{outlet.name || `${vendor.businessName} - Branch ${idx + 1}`}</Text>
+                        <Text style={styles.outletAddress}>{outlet.address || vendor.address || 'Address not specified'}</Text>
+                        <Text style={styles.outletManager}>Contact: {outlet.manager || outlet.contactPerson || vendor.vendorName || 'Branch Manager'}</Text>
+                      </View>
+                      <View style={styles.outletActions}>
+                        <TouchableOpacity
+                          style={styles.outletActionBtn}
+                          onPress={() => Linking.openURL(`tel:${outlet.phone || vendor.phone}`)}
+                          activeOpacity={0.7}
+                        >
+                          <Icon name="phone" size={14} color="#2563EB" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.outletActionBtn}
+                          onPress={handleOpenMap}
+                          activeOpacity={0.7}
+                        >
+                          <Icon name="navigation" size={14} color="#2563EB" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.outletItemCard}>
                   <View style={styles.outletTopRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.outletName}>{outlet.name}</Text>
-                      <Text style={styles.outletAddress}>{outlet.address}</Text>
-                      <Text style={styles.outletManager}>Manager: {outlet.manager}</Text>
+                      <Text style={styles.outletName}>{vendor.businessName} - Main Storefront</Text>
+                      <Text style={styles.outletAddress}>{vendor.address || 'Field Location'}</Text>
+                      <Text style={styles.outletManager}>Contact: {vendor.vendorName || vendor.name || 'Store Owner'}</Text>
                     </View>
                     <View style={styles.outletActions}>
                       <TouchableOpacity
                         style={styles.outletActionBtn}
-                        onPress={() => Linking.openURL(`tel:${outlet.phone}`)}
+                        onPress={() => Linking.openURL(`tel:${vendor.phone}`)}
                         activeOpacity={0.7}
                       >
                         <Icon name="phone" size={14} color="#2563EB" />
@@ -1073,7 +1135,7 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
                     </View>
                   </View>
                 </View>
-              ))}
+              )}
             </View>
           </View>
         )}
@@ -1200,6 +1262,54 @@ export const VendorDetailScreen: React.FC<VendorDetailScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
+  avatarPlaceholder: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1D4ED8',
+    letterSpacing: 0.5,
+  },
+  kycEmptyDocPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 6,
+  },
+  kycEmptyDocStatus: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  kycUploadedDocRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 10,
+    marginBottom: 6,
+  },
+  kycUploadedDocName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  kycUploadedDocType: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#F8FAFC',

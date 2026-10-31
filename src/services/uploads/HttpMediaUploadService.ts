@@ -1,5 +1,6 @@
 /**
  * HTTP Implementation of IMediaUploadService
+ * Authoritative connection to backend S3 / Document uploads & Shop Visits
  */
 import {
   IMediaUploadService,
@@ -10,11 +11,19 @@ import {
 import { apiClient } from '../api/ApiClient';
 import { services } from '../index';
 
-interface UploadResponse {
-  url: string;
-  fileName?: string;
-  fileSize?: number;
-  mimeType?: string;
+interface DocumentUploadResponse {
+  success: boolean;
+  message?: string;
+  url?: string;
+  file?: {
+    name?: string;
+    filename?: string;
+    key?: string;
+    url?: string;
+    secure_url?: string;
+    size?: number;
+    type?: string;
+  };
 }
 
 export class HttpMediaUploadService implements IMediaUploadService {
@@ -28,19 +37,25 @@ export class HttpMediaUploadService implements IMediaUploadService {
     const filename = options?.fileName || filePath.split('/').pop() || `voice_${Date.now()}.m4a`;
     const mimeType = options?.mimeType || (filename.endsWith('.mp3') ? 'audio/mpeg' : 'audio/m4a');
 
-    formData.append('audio', {
+    // The backend's handleDocumentUpload in uploadRoutes.js accepts field 'document' or 'file'
+    formData.append('document', {
       uri: filePath,
       name: filename,
       type: mimeType,
     } as any);
 
-    const response = await apiClient.uploadMultipartWithProgress<UploadResponse>(
-      '/uploads/audio',
+    const response = await apiClient.uploadMultipartWithProgress<DocumentUploadResponse>(
+      '/uploads/document',
       formData,
       { token: token || undefined, onProgress }
     );
 
-    return response.data.url;
+    const raw = response.data || (response as any);
+    const uploadedUrl = raw?.file?.secure_url || raw?.file?.url || raw?.url || '';
+    if (!uploadedUrl) {
+      throw new Error(raw?.message || 'Failed to retrieve uploaded audio URL from server.');
+    }
+    return uploadedUrl;
   }
 
   async submitVisitExceptionReport(
@@ -48,37 +63,46 @@ export class HttpMediaUploadService implements IMediaUploadService {
     onProgress?: UploadProgressCallback
   ): Promise<VisitExceptionReportResult> {
     const token = await services.storageService.getAuthToken();
-    const formData = new FormData();
+    let audioUrl: string | null = null;
 
-    formData.append('businessName', payload.businessName);
-    formData.append('vendorName', payload.vendorName || 'Prospective Merchant');
-    formData.append('category', payload.category || 'General');
-    formData.append('reason', payload.reason);
-    formData.append('managerId', payload.managerId);
-
+    // 1. Upload audio file if present
     if (payload.audioUri) {
-      const filename = payload.audioFileName || payload.audioUri.split('/').pop() || 'voice_note.m4a';
-      const mimeType = payload.audioMimeType || (filename.endsWith('.mp3') ? 'audio/mpeg' : 'audio/m4a');
-
-      formData.append('audio', {
-        uri: payload.audioUri,
-        name: filename,
-        type: mimeType,
-      } as any);
+      try {
+        audioUrl = await this.uploadAudioReport(payload.audioUri, onProgress, {
+          fileName: payload.audioFileName || undefined,
+          mimeType: payload.audioMimeType || undefined,
+        });
+      } catch (uploadErr: any) {
+        console.warn('[HttpMediaUploadService] Audio upload fallback / error:', uploadErr);
+        throw new Error(uploadErr?.message || 'Audio file upload failed. Please verify connection and retry.');
+      }
     }
 
-    const response = await apiClient.uploadMultipartWithProgress<VisitExceptionReportResult>(
-      '/visits/exception-report',
-      formData,
-      { token: token || undefined, onProgress }
-    );
+    // 2. Persist shop visit exception report via authoritative /shop-visits backend endpoint
+    const visitPayload = {
+      shopName: payload.businessName.trim(),
+      category: payload.category || 'General',
+      interestedStatus: 'NO',
+      notInterestedReason: payload.reason.trim() || 'Voice exception report attached',
+      voiceNote: audioUrl || undefined,
+      audioVoiceNote: audioUrl || undefined,
+      managerId: payload.managerId,
+    };
+
+    const visitRes = await apiClient.post<any>('/shop-visits', visitPayload, {
+      token: token || undefined,
+      timeoutMs: 30000,
+    });
+
+    const visitData = visitRes.data || (visitRes as any);
+    const createdVisit = visitData?.data || visitData;
 
     return {
       success: true,
-      reportId: response.data?.reportId || `exc-${Date.now()}`,
-      audioUrl: response.data?.audioUrl || null,
-      audioFileName: response.data?.audioFileName || payload.audioFileName,
-      message: response.data?.message || 'Voice note uploaded successfully',
+      reportId: createdVisit?._id || createdVisit?.id || `visit-${Date.now()}`,
+      audioUrl: audioUrl || createdVisit?.voiceNote || null,
+      audioFileName: payload.audioFileName,
+      message: 'Declined interest exception report recorded successfully.',
     };
   }
 
@@ -90,18 +114,19 @@ export class HttpMediaUploadService implements IMediaUploadService {
     const formData = new FormData();
     const filename = localUri.split('/').pop() || `photo_${Date.now()}.jpg`;
 
-    formData.append('file', {
+    formData.append('document', {
       uri: localUri,
       name: filename,
       type: 'image/jpeg',
     } as any);
 
     const response = await apiClient.uploadMultipartWithProgress<any>(
-      '/uploads/photo',
+      '/uploads/document',
       formData,
       { token: token || undefined, onProgress }
     );
 
-    return response.data?.url || response.data?.file?.url || (response as any).file?.url || '';
+    const raw = response.data || (response as any);
+    return raw?.file?.secure_url || raw?.file?.url || raw?.url || '';
   }
 }

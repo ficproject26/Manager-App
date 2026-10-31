@@ -546,44 +546,70 @@ export const FICAudioPlayerRecorder: React.FC<FICAudioPlayerRecorderProps> = ({
             </View>
           </View>
 
-          {/* Player Controls & Re-record Actions */}
-          <View style={styles.playerFooterRow}>
-            {/* Playback Controls: Stop & Loudspeaker Badge */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {(isPlaying || isPaused) && (
-                <TouchableOpacity
-                  style={styles.stopPlaybackBtn}
-                  onPress={handleStopPlayback}
-                  activeOpacity={0.7}
+          {/* Redesigned Recording Controls: Stop, Speaker Output, Re-record, Delete */}
+          <View style={styles.controlsContainer}>
+            {/* Row 1: Audio Playback Status & Speaker Output Routing */}
+            <View style={styles.controlsStatusRow}>
+              {/* Stop Playback Button (Touch-friendly, min 40dp height) */}
+              <TouchableOpacity
+                style={[
+                  styles.stopControlBtn,
+                  !(isPlaying || isPaused) && styles.stopControlBtnDisabled,
+                ]}
+                onPress={handleStopPlayback}
+                disabled={!(isPlaying || isPaused)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Stop Playback"
+              >
+                <Icon
+                  name="stop"
+                  size={16}
+                  color={isPlaying || isPaused ? '#DC2626' : '#94A3B8'}
+                  style={{ marginRight: 5 }}
+                />
+                <Text
+                  style={[
+                    styles.stopControlBtnText,
+                    !(isPlaying || isPaused) && styles.stopControlBtnTextDisabled,
+                  ]}
                 >
-                  <Icon name="stop" size={14} color="#64748B" style={{ marginRight: 2 }} />
-                  <Text style={styles.stopPlaybackText}>Stop</Text>
-                </TouchableOpacity>
-              )}
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 4 }}>
-                <Icon name="volume-high" size={15} color="#059669" style={{ marginRight: 4 }} />
-                <Text style={styles.speakerStatusText}>Speaker Output</Text>
+                  Stop
+                </Text>
+              </TouchableOpacity>
+
+              {/* Speaker Output Badge / Active Audio Route Indicator */}
+              <View style={styles.speakerRouteBadge}>
+                <Icon name="volume-high" size={17} color="#059669" style={{ marginRight: 5 }} />
+                <Text style={styles.speakerRouteText}>Speaker Output</Text>
+                <View style={styles.speakerActiveDot} />
               </View>
             </View>
 
-            {/* Action buttons: Re-record & Delete */}
-            <View style={styles.reRecordActions}>
+            {/* Row 2: Symmetrical Action Buttons (Re-record and Delete) */}
+            <View style={styles.actionsDualRow}>
+              {/* Re-record Button */}
               <TouchableOpacity
                 style={styles.reRecordBtn}
                 onPress={handleStartRealRecording}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Re-record Voice Note"
               >
-                <Icon name="refresh" size={14} color="#2563EB" style={{ marginRight: 4 }} />
+                <Icon name="refresh" size={16} color="#2563EB" style={{ marginRight: 6 }} />
                 <Text style={styles.reRecordBtnText}>Re-record</Text>
               </TouchableOpacity>
 
+              {/* Delete Button */}
               <TouchableOpacity
                 style={styles.deleteAudioBtn}
                 onPress={handleDeleteAudio}
                 activeOpacity={0.7}
-                accessibilityLabel="Delete audio recording"
+                accessibilityRole="button"
+                accessibilityLabel="Delete Audio Recording"
               >
-                <Icon name="trash-can-outline" size={16} color="#DC2626" />
+                <Icon name="trash-can-outline" size={16} color="#DC2626" style={{ marginRight: 6 }} />
+                <Text style={styles.deleteAudioBtnText}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -840,62 +866,116 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 1.5,
   },
-  playerFooterRow: {
+  controlsContainer: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 10,
+  },
+  controlsStatusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    gap: 10,
   },
-  speakerStatusText: {
-    fontSize: 11.5,
-    color: '#059669',
-    fontWeight: '500',
-  },
-  stopPlaybackBtn: {
+  stopControlBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  stopPlaybackText: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  reRecordActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  reRecordBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  reRecordBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#2563EB',
-  },
-  deleteAudioBtn: {
-    padding: 6,
-    borderRadius: 8,
+    justifyContent: 'center',
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECACA',
+    paddingHorizontal: 12,
+    height: 40,
+    borderRadius: 8,
+    flex: 1,
   },
-
+  stopControlBtnDisabled: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+  },
+  stopControlBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  stopControlBtnTextDisabled: {
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  speakerRouteBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 12,
+    height: 40,
+    borderRadius: 8,
+    flex: 1,
+  },
+  speakerRouteText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#059669',
+  },
+  speakerActiveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+    marginLeft: 6,
+  },
+  actionsDualRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  reRecordBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    height: 44,
+    borderRadius: 10,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  reRecordBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  deleteAudioBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    height: 44,
+    borderRadius: 10,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  deleteAudioBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
   // State 3: Ready to Record
   actionsContainer: {
     alignItems: 'center',

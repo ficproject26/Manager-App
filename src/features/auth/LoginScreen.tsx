@@ -40,7 +40,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const { login, loginWithManager, sendOtp, verifyOtp, isLoading, authError, clearAuthError } = useAuth();
 
   // Mode: 'EMAIL' | 'OTP_PHONE' | 'OTP_VERIFY'
-  const [activeTab, setActiveTab] = useState<'EMAIL' | 'OTP'>('EMAIL');
+  const [activeTab, setActiveTab] = useState<'EMAIL' | 'OTP'>('OTP');
   const [otpStep, setOtpStep] = useState<'PHONE' | 'VERIFY'>('PHONE');
 
   // Email form state

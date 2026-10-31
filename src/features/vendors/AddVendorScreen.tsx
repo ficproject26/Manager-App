@@ -55,6 +55,7 @@ export const AddVendorScreen: React.FC<AddVendorScreenProps> = ({
 }) => {
   const { manager } = useAuth();
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [submissionErrorModal, setSubmissionErrorModal] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
   const [exceptionModalData, setExceptionModalData] = useState<{ visible: boolean; businessName: string; message?: string }>({
     visible: false,
     businessName: '',
@@ -279,8 +280,12 @@ export const AddVendorScreen: React.FC<AddVendorScreenProps> = ({
           ? `${uploadSuccessMessage}. Declined interest report for "${created.businessName}" has been logged and sent to your supervisor.`
           : undefined,
       });
-    } catch {
-      Alert.alert('Offline Saved', 'Report saved locally. It will sync automatically when network is restored.');
+    } catch (err: any) {
+      console.warn('Submission error in handleSubmitNotInterestedReport:', err);
+      setSubmissionErrorModal({
+        visible: true,
+        message: err?.message || 'Server connection error during report submission. Your audio recording and entered details are preserved.',
+      });
     } finally {
       setIsSubmitting(false);
       setUploadStatusText(null);
@@ -1519,6 +1524,49 @@ export const AddVendorScreen: React.FC<AddVendorScreenProps> = ({
             >
               <Text style={styles.exceptionModalBtnText}>RETURN TO DIRECTORY</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Submission Error & Retry Modal */}
+      <Modal
+        visible={submissionErrorModal.visible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setSubmissionErrorModal({ visible: false, message: '' })}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.exceptionModalCard}>
+            <View style={[styles.exceptionModalIconCircle, { backgroundColor: '#FEE2E2' }]}>
+              <Icon name="alert-circle" size={36} color="#DC2626" />
+            </View>
+
+            <Text style={styles.exceptionModalTitle}>Submission Failed</Text>
+
+            <Text style={styles.exceptionModalBody}>
+              {submissionErrorModal.message || 'Unable to complete submission. Your voice note and merchant information have been preserved.'}
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%', marginTop: 8 }}>
+              <TouchableOpacity
+                style={[styles.exceptionModalBtn, { flex: 1, backgroundColor: '#F1F5F9' }]}
+                activeOpacity={0.8}
+                onPress={() => setSubmissionErrorModal({ visible: false, message: '' })}
+              >
+                <Text style={[styles.exceptionModalBtnText, { color: '#475569' }]}>KEEP DRAFT</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.exceptionModalBtn, { flex: 1.2, backgroundColor: '#2563EB' }]}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setSubmissionErrorModal({ visible: false, message: '' });
+                  handleSubmitNotInterestedReport();
+                }}
+              >
+                <Text style={styles.exceptionModalBtnText}>RETRY</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

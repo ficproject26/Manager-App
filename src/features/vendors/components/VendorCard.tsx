@@ -2,12 +2,18 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Vendor, VendorStatus } from '../../../types';
-import { VENDOR_ASSETS } from '../../../assets/vendors';
 
 export interface VendorCardProps {
   vendor: Vendor;
   onPress?: (vendor: Vendor) => void;
 }
+
+const getVendorInitials = (name?: string): string => {
+  if (!name || !name.trim()) return 'VP';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+};
 
 export const VendorCard: React.FC<VendorCardProps> = ({ vendor, onPress }) => {
   const getStatusBadge = () => {
@@ -46,18 +52,15 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, onPress }) => {
 
   const statusInfo = getStatusBadge();
 
-  const getVendorImageSource = () => {
-    const customPhoto = vendor.shopPhotoUrl || vendor.logoUrl || (vendor as any).photoUrl || (vendor as any).imageUri || (vendor as any).storefrontPhotoUri;
-    if (customPhoto) {
-      return { uri: customPhoto };
-    }
-    if (vendor.imageKey && VENDOR_ASSETS[vendor.imageKey]) {
-      return VENDOR_ASSETS[vendor.imageKey];
-    }
-    return VENDOR_ASSETS.abc_traders;
-  };
-
-  const imageSource = getVendorImageSource();
+  // Pure backend / authenticated photo mapping (No stock image fallbacks)
+  const validPhotoUri =
+    vendor.shopPhotoUrl ||
+    vendor.logoUrl ||
+    (vendor as any).photoUrl ||
+    (vendor as any).imageUri ||
+    (vendor as any).storefrontPhotoUri ||
+    (Array.isArray((vendor as any).documents) && (vendor as any).documents[0]?.url) ||
+    null;
 
   const hasIssues = (vendor.issueCount || 0) > 0;
 
@@ -67,12 +70,21 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, onPress }) => {
       activeOpacity={0.7}
       onPress={onPress ? () => onPress(vendor) : undefined}
     >
-      {/* Storefront Image */}
-      <Image
-        source={imageSource}
-        style={styles.storeImage}
-        resizeMode="cover"
-      />
+      {/* Real Storefront Image or Clean Neutral Avatar */}
+      {validPhotoUri ? (
+        <Image
+          source={{ uri: validPhotoUri }}
+          style={styles.storeImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.storeImage, styles.avatarPlaceholder]}>
+          <Icon name="storefront-outline" size={18} color="#2563EB" style={{ marginBottom: 1 }} />
+          <Text style={styles.avatarInitials} numberOfLines={1}>
+            {getVendorInitials(vendor.businessName || vendor.name)}
+          </Text>
+        </View>
+      )}
 
       {/* Center Details */}
       <View style={styles.centerDetails}>
@@ -87,7 +99,7 @@ export const VendorCard: React.FC<VendorCardProps> = ({ vendor, onPress }) => {
         <View style={styles.locationRow}>
           <Icon name="map-marker-outline" size={13} color="#64748B" style={styles.metaIcon} />
           <Text style={styles.locationText} numberOfLines={1}>
-            {vendor.locationDistrict || vendor.address || 'Tamil Nadu'}
+            {vendor.locationDistrict || vendor.address || 'Field Location'}
           </Text>
         </View>
 
@@ -147,6 +159,19 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 8,
     backgroundColor: '#F1F5F9',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1D4ED8',
+    letterSpacing: 0.5,
   },
   centerDetails: {
     flex: 1,

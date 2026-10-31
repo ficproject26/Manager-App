@@ -144,6 +144,11 @@ export class HttpAuthService implements IAuthService {
 
       const manager = this.normalizeManager(rawUser);
 
+      // Cleanly isolate session - wipe any previous storage
+      await services.storageService.clearAuthTokens();
+      await services.storageService.removeItem('ACTIVE_MGR_ID');
+      await services.storageService.removeItem('ACTIVE_MGR_OBJECT');
+
       await services.storageService.setAuthToken(token);
       await services.storageService.setItem('ACTIVE_MGR_ID', manager.id);
       await services.storageService.setItem('ACTIVE_MGR_OBJECT', JSON.stringify(manager));
@@ -231,6 +236,11 @@ export class HttpAuthService implements IAuthService {
       }
 
       const manager = this.normalizeManager(rawUser);
+
+      // Cleanly isolate session - wipe any previous storage
+      await services.storageService.clearAuthTokens();
+      await services.storageService.removeItem('ACTIVE_MGR_ID');
+      await services.storageService.removeItem('ACTIVE_MGR_OBJECT');
 
       await services.storageService.setAuthToken(token);
       await services.storageService.setItem('ACTIVE_MGR_ID', manager.id);

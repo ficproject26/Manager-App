@@ -72,6 +72,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (username: string, password: string): Promise<AuthLoginResult> => {
     setIsLoading(true);
     setAuthError(null);
+    // Explicit session isolation: wipe prior profile state on account switch / new auth
+    setManager(null);
+    setToken(null);
+    setIsAuthenticated(false);
     try {
       const result = await authService.login(username, password);
       if (result.success && result.manager && result.token) {
@@ -174,6 +178,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const verifyOtp = async (mobile: string, otp: string): Promise<AuthLoginResult> => {
     setIsLoading(true);
     setAuthError(null);
+    // Explicit session isolation: wipe prior profile state on account switch / new auth
+    setManager(null);
+    setToken(null);
+    setIsAuthenticated(false);
     try {
       if (!authService.verifyOtp) {
         throw new Error('OTP verification service not configured.');
