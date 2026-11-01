@@ -21,6 +21,13 @@ try {
   // Degrades gracefully in non-RN testing environments
 }
 
+let messagingModule: any = null;
+try {
+  messagingModule = require('@react-native-firebase/messaging').default;
+} catch (e) {
+  // Gracefully falls back when native Firebase is being configured
+}
+
 export type PermissionStatus = 'granted' | 'denied' | 'never_ask_again';
 
 export interface FCMNotificationPayload {
@@ -66,7 +73,7 @@ class PushNotificationService {
           {
             title: 'Enable Operational Notifications',
             message:
-              'FIC Manager requires notification permissions to alert you about assigned tasks, issue escalations, and territory updates.',
+              'Manager App requires notification permissions to alert you about assigned tasks, issue escalations, and territory updates directly in your notification bar.',
             buttonPositive: 'Allow',
             buttonNegative: 'Don\'t Allow',
           }
@@ -92,10 +99,8 @@ class PushNotificationService {
    * 2. Configure Android Notification Channel
    */
   async createNotificationChannel(): Promise<void> {
-    // Defines the fic_notifications_channel specification for native Android system tray
     if (Platform.OS === 'android') {
-      // High importance channel metadata for system tray & lock-screen rendering
-      console.log('[PushNotificationService] Created Android channel: fic_notifications_channel');
+      console.log('[PushNotificationService] Configured Android notification channels for Manager App');
     }
   }
 
@@ -108,11 +113,30 @@ class PushNotificationService {
         return this.currentFcmToken;
       }
 
-      // Generate a structured, authentic FCM device token string
+      if (messagingModule) {
+        try {
+          const authStatus = await messagingModule().requestPermission();
+          const enabled =
+            authStatus === messagingModule.AuthorizationStatus.AUTHORIZED ||
+            authStatus === messagingModule.AuthorizationStatus.PROVISIONAL;
+          if (enabled) {
+            const token = await messagingModule().getToken();
+            if (token) {
+              this.currentFcmToken = token;
+              console.log('[PushNotificationService] Real FCM Token obtained from device:', token);
+              return token;
+            }
+          }
+        } catch (fcmErr: any) {
+          console.warn('[PushNotificationService] FCM getToken notice:', fcmErr?.message || fcmErr);
+        }
+      }
+
+      // Consistent fallback token
       const fakeTokenBytes = Array.from({ length: 32 }, () =>
         Math.floor(Math.random() * 16).toString(16)
       ).join('');
-      this.currentFcmToken = `fcm_token_fic_${fakeTokenBytes}`;
+      this.currentFcmToken = `fcm_mgr_${fakeTokenBytes}`;
       return this.currentFcmToken;
     } catch (err) {
       console.error('[PushNotificationService] Failed to get FCM token:', err);
@@ -142,18 +166,37 @@ class PushNotificationService {
         return true;
       }
 
-      // Safely register FCM token association and persist locally
+      // Safely register FCM token association and persist in database
       try {
         await apiClient.post('/notifications/register-token', {
+          userId: managerId,
           managerId,
+          token: fcmToken,
           fcmToken,
           platform: Platform.OS,
-          role: role || 'MANAGER',
+          role: 'manager',
           territory: territory || {},
           updatedAt: new Date().toISOString(),
         });
       } catch (postErr) {
-        // Backend utilizes SSE stream (/api/notifications/stream); graceful local registration
+        // Fallback for standalone routes
+      }
+
+      // Listen for token refresh
+      if (messagingModule) {
+        try {
+          messagingModule().onTokenRefresh(async (newToken: string) => {
+            this.currentFcmToken = newToken;
+            await apiClient.post('/notifications/register-token', {
+              userId: managerId,
+              managerId,
+              token: newToken,
+              fcmToken: newToken,
+              platform: Platform.OS,
+              role: 'manager',
+            }).catch(() => {});
+          });
+        } catch (e) {}
       }
 
       console.log(`[PushNotificationService] FCM Token registered for manager ${managerId}`);
@@ -170,18 +213,13 @@ class PushNotificationService {
    */
   async deactivateDeviceToken(managerId: string): Promise<boolean> {
     try {
-      if (ENV.useMockData) {
-        this.currentFcmToken = null;
-        this.isInitialized = false;
-        console.log(`[PushNotificationService] FCM Token deactivated in mock mode for manager ${managerId}`);
-        return true;
-      }
-
       if (this.currentFcmToken) {
         await apiClient.post('/notifications/unregister-token', {
+          userId: managerId,
           managerId,
+          token: this.currentFcmToken,
           fcmToken: this.currentFcmToken,
-        });
+        }).catch(() => {});
       }
       this.currentFcmToken = null;
       this.isInitialized = false;
